@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Studio AI Kreatif</title>
+    <title>HAMBS AI Video Content Engine</title>
     <link href="https://cdn.jsdelivr.net/npm/fontsource-inter@5.0/index.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="style.css">
@@ -15,7 +15,7 @@
     <div class="top-bar-left">
         <button class="btn-header home" id="homeBtn" title="Kembali ke menu utama">🏠</button>
         <div class="brand"><div class="brand-icon" id="brandIcon">H</div><div class="brand-text"><span class="brand-name">HAMBS</span><span class="brand-sub">PRODUCTION</span></div></div>
-        <div class="tool-badge">Prompt Studio Ultimate</div>
+        <div class="tool-badge">AI Video Content Engine v2</div>
     </div>
     <div class="top-bar-center">
         <div class="project-selector">
@@ -37,30 +37,47 @@
         <div class="sidebar-header"><div class="sidebar-brand"><div class="sidebar-brand-icon" id="sidebarBrandIcon">H</div><div><span class="sidebar-brand-name">HAMBS</span><span class="sidebar-brand-sub">PRODUCTION</span></div></div></div>
         <div class="steps-container">
             <div class="step-item" data-step="0"><div class="step-number">1</div><div class="step-info"><span class="step-title">UNGGAH ASET</span><span class="step-desc">Produk & Karakter</span></div></div>
-            <div class="step-item" data-step="1"><div class="step-number">2</div><div class="step-info"><span class="step-title">PARAMETER</span><span class="step-desc">Kategori & Gaya</span></div></div>
+            <div class="step-item" data-step="1"><div class="step-number">2</div><div class="step-info"><span class="step-title">PARAMETER</span><span class="step-desc">Engine & Gaya</span></div></div>
             <div class="step-item" data-step="2"><div class="step-number">3</div><div class="step-info"><span class="step-title">EKSEKUSI AI</span><span class="step-desc">Generate</span></div></div>
             <div class="step-item" data-step="3"><div class="step-number">4</div><div class="step-info"><span class="step-title">MASTER PLAN</span><span class="step-desc">Hasil Generate</span></div></div>
         </div>
-        <div class="sidebar-footer"><span>POWERED BY <strong>GOOGLE GEMINI</strong></span></div>
+        <div class="sidebar-footer"><span>DUAL ENGINE <strong>UGC + ADS</strong></span></div>
     </aside>
 
     <main class="content-area" id="contentArea">
         <!-- MODE SELECTION PANEL -->
         <div class="step-panel active" id="panel-mode">
             <div class="mode-container">
-                <h1 class="mode-title">Mau bikin konten apa hari ini?</h1>
+                <h1 class="mode-title">Pilih Engine</h1>
+                <p class="mode-subtitle">Dua engine berbeda dengan aturan, prompt, dan output yang sepenuhnya terpisah.</p>
                 <div class="mode-cards">
-                    <div class="mode-card" id="cardIklan">
+                    <div class="mode-card mode-card-ads" id="cardIklan">
                         <div class="mode-icon">🎥</div>
-                        <h2>Iklan Narator</h2>
-                        <ul><li>✅ 10 Scene Cinematic</li><li>✅ Narator Off-Screen</li><li>✅ Durasi 60 Detik</li><li>✅ Gaya Profesional</li></ul>
-                        <button class="mode-btn">PILIH MODE</button>
+                        <h2>ADS ENGINE</h2>
+                        <div class="mode-card-subtitle">Cinematic Mode</div>
+                        <ul>
+                            <li>10 Scene Cinematic</li>
+                            <li>Narator Off-Screen</li>
+                            <li>Durasi 60 Detik</li>
+                            <li>Cinematic Lighting & Framing</li>
+                            <li>Smooth Camera Motion</li>
+                            <li>Product Beauty Focus</li>
+                        </ul>
+                        <button class="mode-btn">PILIH ADS ENGINE</button>
                     </div>
-                    <div class="mode-card" id="cardUGC">
+                    <div class="mode-card mode-card-ugc" id="cardUGC">
                         <div class="mode-icon">📱</div>
-                        <h2>UGC TikTok Affiliate</h2>
-                        <ul><li>✅ 3-5 Shot Dinamis</li><li>✅ Karakter Bicara Langsung</li><li>✅ Storytelling PAS</li><li>✅ Gaya Santai & Meyakinkan</li></ul>
-                        <button class="mode-btn">PILIH MODE</button>
+                        <h2>UGC ENGINE</h2>
+                        <div class="mode-card-subtitle">Realism Mode</div>
+                        <ul>
+                            <li>5 Shot Dinamis</li>
+                            <li>Karakter Bicara Langsung</li>
+                            <li>Story Arc: Hook→Problem→Discovery→Proof→CTA</li>
+                            <li>Handheld Phone Simulation</li>
+                            <li>Natural Imperfections</li>
+                            <li>Authentic Feel</li>
+                        </ul>
+                        <button class="mode-btn">PILIH UGC ENGINE</button>
                     </div>
                 </div>
             </div>
@@ -102,7 +119,45 @@
 
         <!-- STEP 2: PARAMETER KONTEN -->
         <div class="step-panel" id="panel-1">
-            <div class="panel-header"><div class="panel-step-label">LANGKAH 2 DARI 4</div><h1 class="panel-title">2. PARAMETER KONTEN</h1></div>
+            <div class="panel-header"><div class="panel-step-label">LANGKAH 2 DARI 4</div><h1 class="panel-title">2. ENGINE CONFIG & PARAMETER</h1></div>
+
+            <!-- ENGINE CONFIG SECTION -->
+            <div class="engine-config-section">
+                <div class="engine-config-title">⚙️ ENGINE CONFIGURATION</div>
+                <div class="engine-config-grid">
+                    <div class="config-item">
+                        <label class="config-label">🎭 Persona</label>
+                        <select id="personaSelect" class="config-select">
+                            <option value="best_friend">👯 Best Friend</option>
+                            <option value="reviewer">🔍 Honest Reviewer</option>
+                            <option value="seller">💼 Confident Seller</option>
+                            <option value="storyteller">📖 Storyteller</option>
+                        </select>
+                        <p class="config-hint">Gaya bicara dan tone voiceover</p>
+                    </div>
+                    <div class="config-item">
+                        <label class="config-label">⚡ Energy Level</label>
+                        <select id="energySelect" class="config-select">
+                            <option value="low">🌙 Calm & Soft</option>
+                            <option value="medium" selected>⚡ Balanced</option>
+                            <option value="high">🔥 Energetic</option>
+                            <option value="chaotic">🌪️ Chaotic / Viral</option>
+                        </select>
+                        <p class="config-hint">Pacing, tempo, dan gaya editing</p>
+                    </div>
+                    <div class="config-item config-item-full">
+                        <label class="config-label">📊 Realism Level: <span id="realismValue">70</span>%</label>
+                        <input type="range" id="realismSlider" class="config-slider" min="0" max="100" value="70">
+                        <div class="slider-labels">
+                            <span>0% Polished</span>
+                            <span>50% Natural</span>
+                            <span>100% Raw</span>
+                        </div>
+                        <p class="config-hint">Seberapa "mentah" visual output (imperfections, camera shake, dll)</p>
+                    </div>
+                </div>
+            </div>
+
             <div class="form-section"><div class="form-section-title">NAMA PRODUK *</div><input type="text" class="text-input" value="Indomie Goreng" id="productName"></div>
             <div class="form-section"><div class="form-section-title">DESKRIPSI (OPSIONAL)</div><textarea id="productDescription" class="text-input" rows="3" placeholder="Detail produk..."></textarea></div>
             <div class="form-section"><div class="form-section-title">KATEGORI</div><div class="options-grid" id="categoryGrid">
@@ -127,12 +182,12 @@
                 </div>
             </div>
             <div class="form-section">
-                <div class="form-section-title">🎥 MODEL VIDEO AI</div>
+                <div class="form-section-title">🎥 MODEL VIDEO AI (Platform)</div>
                 <div class="options-grid" id="videoModelGrid">
-                    <button class="option-btn selected" data-model="veo">Veo 3.1 (Deskriptif)</button>
-                    <button class="option-btn" data-model="seedance">Seedance 2.0 (Teknis)</button>
+                    <button class="option-btn selected" data-model="veo">Veo 3.1 — Lens, DOF, Cinematic Lighting</button>
+                    <button class="option-btn" data-model="seedance">Seedance 2.0 — Motion, Interaction, Dynamics</button>
                 </div>
-                <p class="input-hint">Pilih model AI. Prompt video akan disesuaikan otomatis.</p>
+                <p class="input-hint">Veo: detail lensa, depth of field, cinematic lighting. Seedance: motion & interaksi real-time.</p>
             </div>
             <div class="form-section">
                 <div class="form-section-title">🎬 LATAR BELAKANG UGC (Pilih Salah Satu)</div>
@@ -185,7 +240,7 @@
         <div class="step-panel" id="panel-2">
             <div class="loading-screen active">
                 <div class="loading-spinner"><div class="spinner-ring"></div><div class="spinner-ring"></div></div>
-                <h2 id="loadingTitle">AI DIRECTOR IS WORKING...</h2>
+                <h2 id="loadingTitle">AI ENGINE IS WORKING...</h2>
                 <div class="loading-progress"><div class="loading-progress-bar" id="progressBar"></div></div>
                 <div id="loadingStatus">Memulai...</div>
             </div>
@@ -208,6 +263,6 @@
     <span>💾 Sesi Tersimpan</span>
 </div>
 
-<script src="script.js"></script>
+<script type="module" src="js/app.js"></script>
 </body>
 </html>
