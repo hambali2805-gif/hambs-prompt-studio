@@ -1,5 +1,6 @@
 // ==================== MAIN APPLICATION ====================
-// Entry point — bootstraps dual-engine system, binds UI events
+// Central entry point — category-aware prompt engine.
+// All generation flows through generatePrompt(config).
 
 import { engineConfig, updateConfig, TARGET_AD_SHOTS, TARGET_UGC_SHOTS, SHOT_COLORS, API_KEY_STORAGE, PERSONAS, ENERGY_LEVELS } from './config.js';
 import { state, updateState } from './state.js';
@@ -12,6 +13,7 @@ import { resetPhraseTracker } from './core/antiRepetition.js';
 import { resetVariationTracker } from './core/sceneVariation.js';
 import { getSceneArc } from './core/storyArc.js';
 import { enforceCTA } from './core/ctaBuilder.js';
+import { getCategoryData, validateCategoryOutput, CATEGORY_RULES } from './categoryRules.js';
 import {
     saveSession, restoreSession, clearSession, handleFile, removeUpload,
     updateConfirmBtn, loadProjectList, saveCurrentProject, exportProject,
@@ -81,15 +83,36 @@ function selOpt(btn, grp) {
     saveSession();
 }
 
+// ==================== CENTRAL ENTRY POINT ====================
+// All generation flows through this function.
+// It resolves category rules and delegates to UGC or Ads builders.
+
+function generatePrompt(config) {
+    const categoryData = CATEGORY_RULES[config.selectedCategory];
+
+    if (!categoryData) {
+        throw new Error('Unsupported category: ' + config.selectedCategory);
+    }
+
+    if (config.mode === 'ugc') {
+        return { categoryData, builder: 'ugc' };
+    }
+
+    if (config.mode === 'ads') {
+        return { categoryData, builder: 'ads' };
+    }
+
+    throw new Error('Invalid mode: ' + config.mode);
+}
+
 // ==================== GENERATE LOGIC ====================
-async function generateVO(info, isUGC) {
+async function generateVO(info, isUGC, categoryData) {
     try {
         const prompt = isUGC
-            ? buildUGCVoiceoverPrompt(info)
-            : buildAdsVoiceoverPrompt(info);
+            ? buildUGCVoiceoverPrompt(info, categoryData)
+            : buildAdsVoiceoverPrompt(info, categoryData);
         const rawVO = cleanText(await callAI(prompt));
 
-        // Enforce CTA on the last line
         const lines = rawVO.split('\n').filter(l => l.trim());
         if (lines.length > 0) {
             lines[lines.length - 1] = enforceCTA(lines[lines.length - 1], state.selectedLang);
@@ -97,46 +120,58 @@ async function generateVO(info, isUGC) {
         return lines.join('\n');
     } catch (e) {
         console.error('Gagal generate VO:', e);
-        return buildFallbackVO(info, isUGC);
+        return buildFallbackVO(info, isUGC, categoryData);
     }
 }
 
-function buildFallbackVO(info, isUGC) {
-    const isBeverage = info.name.toLowerCase().match(/teh|tea|minum|drink|jus|juice|kopi|coffee|susu|milk/);
+function buildFallbackVO(info, isUGC, categoryData) {
+    const voiceStyle = categoryData ? categoryData.voiceStyle : 'natural and engaging';
+    const actions = categoryData ? categoryData.actions.slice(0, 3).join(', ') : 'interacting with product';
+    const sensory = categoryData ? categoryData.sensory.slice(0, 2).join(', ') : 'appealing visuals';
+
     if (isUGC) {
-        return isBeverage
-            ? `Eh bestie, lo udah nyobain ${info.name} belum? Literally (li-te-re-li) seger banget sih!\nGue tuh dulu males banget minum teh botol, soalnya kebanyakan yang rasanya flat gitu.\nTapi pas nyobain ${info.name} ini, beda dong! Pake pucuk teh pilihan, kualitasnya dijaga banget.\nDingin-dingin gini nyeruput satu botol, literally bikin mood naik.\nNo debat sih ini worth it (wort-it) banget! Buruan cobain, link di bio ya! Stok terbatas!`
-            : `Eh bestie, lo udah nyobain ${info.name} belum? Literally (li-te-re-li) worth it banget sih!\nGue tuh dulu skeptis sama ${info.category.toLowerCase()}, soalnya udah coba banyak tapi hasilnya gitu-gitu aja.\nTapi pas nyobain ${info.name} ini, beda banget! Vibe-nya dapet.\nBasically (be-si-ke-li) juara. End-up gue malah repeat order.\nPokoknya recommended banget! Link di bio, buruan sebelum kehabisan!`;
+        return `Eh bestie, lo udah nyobain ${info.name} belum? Literally (li-te-re-li) worth it banget sih!
+Gue tuh dulu skeptis sama ${info.category.toLowerCase()}, soalnya udah coba banyak tapi hasilnya gitu-gitu aja.
+Tapi pas nyobain ${info.name} ini, beda banget! ${sensory}.
+Basically (be-si-ke-li) juara sih — ${actions}. End-up gue malah repeat order.
+Pokoknya recommended banget! Link di bio, buruan sebelum kehabisan!`;
     }
-    return isBeverage
-        ? `Satu tegukan yang mengubah segalanya.\nDari pucuk teh terpilih, lahirlah ${info.name}.\nKesegaran sejati dalam setiap tetes — dingin, murni, menyegarkan.\nDibuat dari daun teh pilihan, dipetik di waktu terbaiknya.\nRasakan kesegaran alami yang memanjakan setiap indra.\nDipercaya jutaan penikmat teh di seluruh Indonesia.\nBuka tutup botolnya, rasakan kesegarannya.\nKarena momen terbaik dimulai dari tegukan pertama.\nDapatkan sekarang — penawaran terbatas!\n${info.name}. Teh terbaik dari pucuknya.`
-        : `Pernahkah Anda membayangkan ${info.category.toLowerCase()} yang sempurna?\nSatu nama terus bersinar — ${info.name}.\nDiracik dengan teknologi terdepan dan bahan pilihan terbaik.\nSetiap detail dirancang untuk pengalaman tak tertandingi.\nRasakan perbedaannya sejak sentuhan pertama.\nDipercaya oleh ribuan pelanggan di seluruh Indonesia.\nLihat bagaimana ${info.name} mengubah rutinitas Anda.\nKarena Anda layak mendapatkan yang terbaik.\nPenawaran terbatas — jangan sampai kehabisan.\n${info.name}. Pilihan cerdas untuk hidup yang lebih baik.`;
+    return `Pernahkah Anda membayangkan ${info.category.toLowerCase()} yang sempurna?
+Satu nama terus bersinar — ${info.name}.
+${sensory} — setiap detail dirancang untuk pengalaman tak tertandingi.
+Rasakan sendiri: ${actions}.
+Setiap detail dirancang dengan standar tertinggi.
+Dipercaya oleh ribuan pelanggan di seluruh Indonesia.
+Lihat bagaimana ${info.name} mengubah rutinitas Anda.
+Karena Anda layak mendapatkan yang terbaik.
+Penawaran terbatas — jangan sampai kehabisan.
+${info.name}. Pilihan cerdas untuk hidup yang lebih baik.`;
 }
 
-async function generateSceneVisuals(info, sceneNum, voSnippet, isUGC, totalScenes) {
+async function generateSceneVisuals(info, sceneNum, voSnippet, isUGC, totalScenes, categoryData) {
     const mode = isUGC ? 'ugc' : 'ads';
     const arc = getSceneArc(mode, sceneNum - 1);
 
     let sceneDescription;
     try {
         const scenePrompt = isUGC
-            ? buildUGCScenePrompt(info, sceneNum, voSnippet, totalScenes)
-            : buildAdsScenePrompt(info, sceneNum, voSnippet, totalScenes);
+            ? buildUGCScenePrompt(info, sceneNum, voSnippet, totalScenes, categoryData)
+            : buildAdsScenePrompt(info, sceneNum, voSnippet, totalScenes, categoryData);
         sceneDescription = cleanText(await callAI(scenePrompt));
     } catch (e) {
         console.error(`Scene ${sceneNum} fallback:`, e);
-        sceneDescription = buildFallbackScene(info, sceneNum, isUGC);
+        sceneDescription = buildFallbackScene(info, sceneNum, isUGC, categoryData);
     }
 
-    const imagePrompt = buildImagePrompt(sceneDescription, voSnippet, isUGC);
+    const imagePrompt = buildImagePrompt(sceneDescription, voSnippet, isUGC, categoryData);
     let videoPrompt;
 
     if (engineConfig.platform === 'seedance') {
         const gender = getGenderDesc();
-        const aiPrompt = await buildSeedanceAIPrompt(sceneDescription, info, gender, isUGC);
-        videoPrompt = aiPrompt || buildVideoPrompt(sceneDescription, voSnippet, sceneNum - 1, totalScenes, isUGC);
+        const aiPrompt = await buildSeedanceAIPrompt(sceneDescription, info, gender, isUGC, categoryData);
+        videoPrompt = aiPrompt || buildVideoPrompt(sceneDescription, voSnippet, sceneNum - 1, totalScenes, isUGC, categoryData);
     } else {
-        videoPrompt = buildVideoPrompt(sceneDescription, voSnippet, sceneNum - 1, totalScenes, isUGC);
+        videoPrompt = buildVideoPrompt(sceneDescription, voSnippet, sceneNum - 1, totalScenes, isUGC, categoryData);
     }
 
     return {
@@ -149,35 +184,24 @@ async function generateSceneVisuals(info, sceneNum, voSnippet, isUGC, totalScene
     };
 }
 
-function buildFallbackScene(info, sceneNum, isUGC) {
+function buildFallbackScene(info, sceneNum, isUGC, categoryData) {
     const gender = getGenderDesc();
-    const isBeverage = info.name.toLowerCase().match(/teh|tea|minum|drink|jus|juice|kopi|coffee|susu|milk/);
-    const bevDetail = isBeverage ? 'chilled PET bottle with condensation droplets' : info.name;
 
-    if (isUGC) {
-        const fallbacks = [
-            `${gender.subj} looks at camera with excited expression, holding ${bevDetail} close, natural sunlight, handheld framing, phone camera quality`,
-            `Close-up of hands interacting with ${bevDetail}, face softly blurred in bokeh, natural ambient light, slight camera shake`,
-            `${gender.subj} uses ${info.name} naturally, genuine reaction, medium close-up, casual messy setting`,
-            `${gender.subj} demonstrates ${info.name} results, satisfied expression, direct to camera, natural background`,
-            `${gender.subj} holds up ${bevDetail} to camera, direct eye contact, energetic gesture, natural background, phone-recorded feel`
-        ];
-        return fallbacks[(sceneNum - 1) % fallbacks.length];
+    if (categoryData) {
+        const env = categoryData.environments[(sceneNum - 1) % categoryData.environments.length];
+        const action = categoryData.actions[(sceneNum - 1) % categoryData.actions.length];
+        const sensory = categoryData.sensory[(sceneNum - 1) % categoryData.sensory.length];
+
+        if (isUGC) {
+            return `${gender.subj} in ${env}, ${action}, ${sensory}, handheld phone camera, natural lighting, casual authentic feel`;
+        }
+        return `Cinematic shot: ${gender.subj} in ${env}, ${action}, ${sensory}, professional lighting, premium composition`;
     }
 
-    const fallbacks = [
-        `Cinematic wide shot, golden light filtering through, ${bevDetail} silhouetted, mysterious atmosphere`,
-        `Slow reveal of brand story, dramatic three-point rim lighting, dark studio background`,
-        `${gender.subj} discovers ${bevDetail}, close-up reaction, professional styling, soft focus background`,
-        `Product detail macro shot of ${bevDetail}, highlighting texture and quality, studio lighting`,
-        `Feature highlight, different angle, ${bevDetail} showcased with cinematic precision`,
-        `${gender.subj} enjoying ${info.name} naturally, curated lifestyle setting, warm studio tones`,
-        `Testimonial-style framing, authentic expression, studio rim light, trust signal`,
-        `Demonstration shot, ${isBeverage ? 'liquid pour from ' + bevDetail : info.name + ' presented elegantly'}, clean composition`,
-        `Emotional close-up, ${gender.subj} ${isBeverage ? 'refreshed after sip' : 'delighted'}, cinematic bokeh`,
-        `Final hero shot of ${bevDetail}, brand positioning, premium aspirational feel`
-    ];
-    return fallbacks[(sceneNum - 1) % fallbacks.length];
+    if (isUGC) {
+        return `${gender.subj} looks at camera with excited expression, holding ${info.name} close, natural sunlight, handheld framing, phone camera quality`;
+    }
+    return `Cinematic wide shot, golden light filtering through, ${info.name} silhouetted, mysterious atmosphere`;
 }
 
 function getGenderDesc() {
@@ -199,15 +223,27 @@ async function startAI() {
     if (isUGC) state.selectedStyle = 'LIFESTYLE';
     const totalScenes = isUGC ? TARGET_UGC_SHOTS : TARGET_AD_SHOTS;
 
-    // Reset tracking systems for fresh generation
     resetPhraseTracker();
     resetVariationTracker();
 
-    // Sync engine config
     updateConfig({
         mode: isUGC ? 'ugc' : 'ads',
         platform: state.selectedVideoModel
     });
+
+    // Central entry point: resolve category and mode
+    let resolved;
+    try {
+        resolved = generatePrompt({
+            selectedCategory: state.selectedCategory,
+            mode: engineConfig.mode
+        });
+    } catch (e) {
+        alert('Error: ' + e.message);
+        return;
+    }
+
+    const { categoryData } = resolved;
 
     goToStep(2, { force: true });
     const statusEl = document.getElementById('loadingStatus');
@@ -217,7 +253,7 @@ async function startAI() {
     try {
         statusEl.textContent = '🎙️ Generate naskah...';
         progEl.style.width = '10%';
-        const vo = await generateVO(info, isUGC);
+        const vo = await generateVO(info, isUGC, categoryData);
         document.getElementById('fullVO').textContent = vo;
 
         const voSnippets = splitVO(vo, totalScenes);
@@ -225,15 +261,22 @@ async function startAI() {
         for (let i = 0; i < totalScenes; i++) {
             statusEl.textContent = `🎬 Generate Scene ${i + 1}/${totalScenes}...`;
             progEl.style.width = `${20 + (i + 1) * (70 / totalScenes)}%`;
-            const shot = await generateSceneVisuals(info, i + 1, voSnippets[i] || vo, isUGC, totalScenes);
+            const shot = await generateSceneVisuals(info, i + 1, voSnippets[i] || vo, isUGC, totalScenes, categoryData);
             shots.push({ number: i + 1, ...shot, headerColor: SHOT_COLORS[i] || 'yellow' });
             if (i < totalScenes - 1) await delay(1500);
+        }
+
+        // Category validation
+        const validation = validateCategoryOutput(shots, info.category);
+        if (!validation.valid) {
+            console.warn('Category validation warning:', validation.message);
+            statusEl.textContent = `⚠️ Validasi: beberapa elemen mungkin kurang (${validation.missing.join(', ')}). Melanjutkan...`;
+            await delay(2000);
         }
 
         statusEl.textContent = 'Selesai!';
         progEl.style.width = '100%';
 
-        // Build structured output
         const structured = buildStructuredOutput(vo, shots, info);
 
         state.generatedData = {
@@ -242,7 +285,8 @@ async function startAI() {
             info,
             contentStyle: isUGC ? 'UGC' : 'IKLAN',
             structured,
-            engineConfig: { ...engineConfig }
+            engineConfig: { ...engineConfig },
+            categoryValidation: validation
         };
 
         displayMasterPlan();
@@ -264,7 +308,6 @@ function displayMasterPlan() {
     const container = document.getElementById('shotCards');
     container.innerHTML = '';
 
-    // Engine info badge
     const engineInfo = document.createElement('div');
     engineInfo.className = 'engine-info-badge';
     engineInfo.innerHTML = `
@@ -273,8 +316,18 @@ function displayMasterPlan() {
         <span class="engine-persona">${PERSONAS[engineConfig.persona]?.icon || '👯'} ${PERSONAS[engineConfig.persona]?.label || 'Best Friend'}</span>
         <span class="engine-energy">${ENERGY_LEVELS[engineConfig.energy]?.icon || '⚡'} ${ENERGY_LEVELS[engineConfig.energy]?.label || 'Balanced'}</span>
         <span class="engine-realism">Realism: ${engineConfig.realism}%</span>
+        <span class="engine-category">📁 ${state.selectedCategory}</span>
     `;
     container.appendChild(engineInfo);
+
+    // Show validation status
+    if (state.generatedData.categoryValidation && !state.generatedData.categoryValidation.valid) {
+        const warning = document.createElement('div');
+        warning.className = 'category-validation-warning';
+        warning.innerHTML = `⚠️ Validasi kategori: elemen yang mungkin kurang — <strong>${state.generatedData.categoryValidation.missing.join(', ')}</strong>`;
+        warning.style.cssText = 'background:#2a1f00;border:1px solid #f59e0b;color:#fbbf24;padding:8px 12px;border-radius:8px;margin-bottom:12px;font-size:0.8rem;';
+        container.appendChild(warning);
+    }
 
     shots.forEach((shot, i) => {
         const color = shot.headerColor || SHOT_COLORS[i] || 'yellow';
@@ -311,7 +364,6 @@ function displayMasterPlan() {
         container.appendChild(card);
     });
 
-    // JSON output section
     if (state.generatedData.structured) {
         const jsonSection = document.createElement('div');
         jsonSection.className = 'json-output-section';
@@ -348,7 +400,6 @@ function copyToClipboard(btn, text) {
         setTimeout(() => btn.textContent = orig, 1500);
     });
 }
-// Expose for inline onclick handlers
 window.__copyToClipboard = copyToClipboard;
 
 function copyAll(btn) {
@@ -374,14 +425,14 @@ function copyVO(btn) {
 function downloadAllAssets() {
     if (!state.generatedData) { alert('Belum ada data untuk di-download!'); return; }
     const cfg = state.generatedData.engineConfig || engineConfig;
-    let content = `HAMBS PRODUCTION — MASTER PROMPT PACK (DUAL ENGINE v2)\n`;
+    let content = `HAMBS PRODUCTION — MASTER PROMPT PACK (CATEGORY-AWARE ENGINE v3)\n`;
     content += `Mode: ${state.generatedData.contentStyle} (${cfg.mode === 'ugc' ? 'Realism' : 'Cinematic'})\n`;
     content += `Platform: ${cfg.platform === 'seedance' ? 'Seedance 2.0' : 'Veo 3.1'}\n`;
     content += `Persona: ${PERSONAS[cfg.persona]?.label || cfg.persona}\n`;
     content += `Energy: ${cfg.energy}\n`;
     content += `Realism: ${cfg.realism}%\n`;
+    content += `Category: ${state.generatedData.info.category}\n`;
     content += `Produk: ${state.generatedData.info.name}\n`;
-    content += `Kategori: ${state.generatedData.info.category}\n`;
     content += `Generated: ${new Date().toLocaleString('id-ID')}\n`;
     content += `${'='.repeat(60)}\n\n`;
     content += `NASKAH VOICEOVER:\n${state.generatedData.vo}\n\n`;
@@ -400,7 +451,7 @@ function downloadAllAssets() {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `HAMBS_${state.generatedData.info.name.replace(/\s+/g, '_')}_${cfg.mode}_${Date.now()}.txt`;
+    a.download = `HAMBS_${state.generatedData.info.name.replace(/\s+/g, '_')}_${cfg.mode}_${state.generatedData.info.category}_${Date.now()}.txt`;
     a.click();
     URL.revokeObjectURL(a.href);
 }

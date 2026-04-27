@@ -1,5 +1,6 @@
 // ==================== PROMPT BUILDER ====================
-// Separated from UI — builds image/video prompts based on engine output
+// Category-aware prompt builder. Uses CATEGORY_RULES for all context.
+// No hardcoded product-type detection — category drives everything.
 
 import { engineConfig } from './config.js';
 import { state } from './state.js';
@@ -10,6 +11,7 @@ import { getAdsStyleContext } from './engines/adsEngine.js';
 import { deduplicatePrompt } from './core/antiRepetition.js';
 import { callAIWithSystem } from './api.js';
 import { cleanText } from './utils.js';
+import { getCategoryData, pickCategorySensory } from './categoryRules.js';
 
 function hasCharacterReference() {
     return !!state.uploadedFiles.char;
@@ -22,19 +24,24 @@ function getGenderDesc() {
         : { subj: 'A young Indonesian woman', pronoun: 'she', possessive: 'her' };
 }
 
-function getNegativePrompt() {
+function getNegativePrompt(categoryData) {
     const base = 'deformed, blurry, low quality, distorted face, extra fingers, bad anatomy, watermark, text overlay, logo';
-    return state.customNegativePrompt ? `${base}, ${state.customNegativePrompt}` : base;
+    const categoryNeg = categoryData
+        ? ', ' + categoryData.negativeContext.join(', ')
+        : '';
+    return state.customNegativePrompt
+        ? `${base}${categoryNeg}, ${state.customNegativePrompt}`
+        : `${base}${categoryNeg}`;
 }
 
-function getBeverageDetail(productName) {
-    const isBeverage = productName.toLowerCase().match(/teh|tea|minum|drink|jus|juice|kopi|coffee|susu|milk/);
-    return isBeverage ? ', cold PET bottle with water condensation droplets, vibrant amber tea color, chilled refreshing look' : '';
+function getCategorySensoryDetail(categoryData) {
+    if (!categoryData) return '';
+    return ', ' + pickCategorySensory(categoryData);
 }
 
-export function buildImagePrompt(sceneDesc, voSnippet, isUGC) {
+export function buildImagePrompt(sceneDesc, voSnippet, isUGC, categoryData) {
     const gender = getGenderDesc();
-    const style = isUGC ? getUGCStyleContext() : getAdsStyleContext();
+    const style = isUGC ? getUGCStyleContext(categoryData) : getAdsStyleContext(categoryData);
 
     const charRef = hasCharacterReference()
         ? `[REF:CHARACTER] ${gender.subj} (reference character), `
@@ -45,24 +52,24 @@ export function buildImagePrompt(sceneDesc, voSnippet, isUGC) {
         : `${state.productName} (${state.selectedCategory}), `;
 
     const lens = getVeoLensPrompt(state.lensStyle);
-    const neg = getNegativePrompt();
-    const beverageKw = getBeverageDetail(state.productName);
+    const neg = getNegativePrompt(categoryData);
+    const sensoryKw = getCategorySensoryDetail(categoryData);
 
     const realismNote = isUGC
         ? `Phone camera quality, realism: ${engineConfig.realism}/100. ${style.imperfections}`
         : 'Studio-grade photography, polished and flawless.';
 
-    const bananaPro = 'shot on 35mm lens, high-resolution photography, photorealistic skin texture, sharp product details, hyper-realistic';
+    const photoRealism = 'shot on 35mm lens, high-resolution photography, photorealistic skin texture, sharp product details, hyper-realistic';
     const styleKeywords = `${style.camera}, ${style.lighting}, ${style.vibe}`;
 
-    const raw = `${charRef}${sceneDesc}. ${prodRef}Product: ${state.productName}${beverageKw}. ${bananaPro}. ${lens}. ${styleKeywords}. ${realismNote}. --no ${neg}`;
+    const raw = `${charRef}${sceneDesc}. ${prodRef}Product: ${state.productName}${sensoryKw}. ${photoRealism}. ${lens}. ${styleKeywords}. ${realismNote}. --no ${neg}`;
     return deduplicatePrompt(raw);
 }
 
-export function buildVideoPrompt(sceneDesc, voSnippet, sceneNum, totalScenes, isUGC) {
+export function buildVideoPrompt(sceneDesc, voSnippet, sceneNum, totalScenes, isUGC, categoryData) {
     const gender = getGenderDesc();
-    const style = isUGC ? getUGCStyleContext() : getAdsStyleContext();
-    const beverageDetail = getBeverageDetail(state.productName);
+    const style = isUGC ? getUGCStyleContext(categoryData) : getAdsStyleContext(categoryData);
+    const sensoryDetail = getCategorySensoryDetail(categoryData);
 
     const charRef = hasCharacterReference()
         ? `${gender.subj} (consistent character from reference), `
@@ -74,7 +81,7 @@ export function buildVideoPrompt(sceneDesc, voSnippet, sceneNum, totalScenes, is
         const interaction = getSeedanceInteraction(sceneNum);
 
         return deduplicatePrompt(buildSeedanceVideoPrompt({
-            charRef, sceneDesc, beverageDetail, motion, lighting,
+            charRef, sceneDesc, sensoryDetail, motion, lighting,
             style: style.vibe, productName: state.productName, interaction
         }));
     }
@@ -84,19 +91,23 @@ export function buildVideoPrompt(sceneDesc, voSnippet, sceneNum, totalScenes, is
     const lighting = getVeoLighting(isUGC);
 
     return deduplicatePrompt(buildVeoVideoPrompt({
-        charRef, sceneDesc, beverageDetail, cam, lighting,
+        charRef, sceneDesc, sensoryDetail, cam, lighting,
         style: style.vibe, productName: state.productName
     }));
 }
 
-export async function buildSeedanceAIPrompt(sceneDesc, info, gender, isUGC) {
-    const isBeverage = info.name.toLowerCase().match(/teh|tea|minum|drink|jus|juice|kopi|coffee|susu|milk/);
+export async function buildSeedanceAIPrompt(sceneDesc, info, gender, isUGC, categoryData) {
+    const sensoryContext = categoryData
+        ? `Sensory: ${categoryData.sensory.slice(0, 2).join(', ')}`
+        : '';
+
     try {
         return cleanText(await callAIWithSystem(SEEDANCE_SYSTEM_PROMPT,
             `Buat prompt video Seedance 2.0 untuk scene ini:
 Visual: ${sceneDesc}
-Produk: ${info.name}${isBeverage ? ' (PET bottle, cold condensation)' : ''}
+Produk: ${info.name} (${info.category})
 Karakter: ${gender.subj}
+${sensoryContext}
 Gaya: ${isUGC ? 'UGC handheld casual, phone-recorded feel' : 'IKLAN cinematic professional, premium commercial'}
 Fokus: temporal consistency, fluid natural movement, human-product interaction dynamics.
 Satu paragraf narasi teknis.`
@@ -106,7 +117,6 @@ Satu paragraf narasi teknis.`
     }
 }
 
-// Structured JSON output builder
 export function buildStructuredOutput(vo, shots, info) {
     return {
         voiceover: vo,
@@ -121,7 +131,8 @@ export function buildStructuredOutput(vo, shots, info) {
             platform: engineConfig.platform,
             persona: engineConfig.persona,
             energy: engineConfig.energy,
-            realism: engineConfig.realism
+            realism: engineConfig.realism,
+            category: info.category
         },
         meta: {
             product: info.name,

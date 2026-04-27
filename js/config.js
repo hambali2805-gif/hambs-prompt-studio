@@ -1,7 +1,7 @@
 // ==================== GLOBAL CONFIG ====================
 export const GEMINI_MODEL = 'gemini-2.5-flash';
-export const SESSION_KEY = 'hambs_session_v27';
-export const PROJECTS_KEY = 'hambs_projects_v27';
+export const SESSION_KEY = 'hambs_session_v28';
+export const PROJECTS_KEY = 'hambs_projects_v28';
 export const API_KEY_STORAGE = 'hambs_gemini_key';
 export const TARGET_AD_SHOTS = 10;
 export const TARGET_UGC_SHOTS = 5;

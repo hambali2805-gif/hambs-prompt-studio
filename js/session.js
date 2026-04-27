@@ -213,7 +213,7 @@ export function saveCurrentProject() {
 export function exportProject() {
     if (!state.generatedData) { alert('Generate dulu sebelum export!'); return; }
     const data = {
-        version: 'hambs_v27_dual_engine',
+        version: 'hambs_v28_category_engine',
         name: state.currentProjectName || 'Untitled',
         contentStyle: state.contentStyle,
         productName: state.productName,

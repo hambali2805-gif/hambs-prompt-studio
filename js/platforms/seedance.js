@@ -11,9 +11,8 @@ STRUKTUR PROMPT SEEDANCE 2.0 (WAJIB):
 1. Subject & Action Detail — focus on human-product interaction and body dynamics.
 2. Camera Motion: Dolly In/Out, Orbital Tracking, Pan, Tilt, Rack Focus.
 3. Lighting & Optics: Rim lighting, Volumetric, Softbox, Lensa spesifik.
-4. Material Physics: ray-traced reflections, subsurface scattering.
-5. Motion Dynamics: emphasize real-time movement, fluid transitions, human action continuity.
-6. Ending: --motion 6 --fps 30 --cfg 7 --upscale 2.
+4. Motion Dynamics: emphasize real-time movement, fluid transitions, human action continuity.
+5. Ending: --motion 6 --fps 30 --cfg 7 --upscale 2.
 Jangan gunakan bullet points. Output hanya satu paragraf narasi prompt.`;
 
 const MOTION_PRESETS_UGC = [
@@ -34,7 +33,7 @@ const MOTION_PRESETS_ADS = [
     'Rack Focus foreground to background, dramatic shift',
     'Crane descending to eye level, grand entrance',
     'Push In with dolly zoom effect, Hitchcock style',
-    'Slow-motion fluid dynamics capture, liquid/fabric',
+    'Slow-motion fluid dynamics capture',
     'Slider tracking with depth layers and bokeh shift',
     'Spiral orbit around product, 360 showcase',
     'Whip pan to product hero shot, snap reveal'
@@ -67,6 +66,6 @@ export function getSeedanceInteraction(sceneNum) {
 }
 
 export function buildSeedanceVideoPrompt(params) {
-    const { charRef, sceneDesc, beverageDetail, motion, lighting, style, productName, interaction } = params;
-    return `${charRef}${sceneDesc}${beverageDetail}. Camera Motion: ${motion}. Lighting: ${lighting}. Human Interaction: ${interaction}. Temporal Consistency: maintain consistent character appearance and fluid natural movement across frames. Material Physics: subsurface scattering on skin texture, ray-traced reflections on product surface. Product: ${productName}. ${style}. --motion 6 --fps 30 --cfg 7 --upscale 2`;
+    const { charRef, sceneDesc, sensoryDetail, motion, lighting, style, productName, interaction } = params;
+    return `${charRef}${sceneDesc}${sensoryDetail}. Camera Motion: ${motion}. Lighting: ${lighting}. Human Interaction: ${interaction}. Temporal Consistency: maintain consistent character appearance and fluid natural movement across frames. Product: ${productName}. ${style}. --motion 6 --fps 30 --cfg 7 --upscale 2`;
 }
