@@ -150,7 +150,7 @@ async function generatePerSceneVO(info, isUGC, categoryData, viralContext, total
                 isUGC,
                 categoryData,
                 viralContext,
-                previousVOs: rawVOTexts
+                previousVOs: rawVOTexts.filter(v => v !== null)
             });
             const rawVO = cleanText(await callAI(prompt));
             rawVOTexts.push(rawVO);
@@ -159,7 +159,8 @@ async function generatePerSceneVO(info, isUGC, categoryData, viralContext, total
             // buildFallbackPerSceneVO already applies humanizeVO + enforceCTA,
             // so store the complete object to avoid double-processing.
             const fallbackVOs = buildFallbackPerSceneVO(info, [phase], viralContext, isUGC, categoryData);
-            fallbackVOObjects[i] = fallbackVOs[0];
+            // Fix scene label: buildFallbackPerSceneVO always produces "Scene 1" since it receives a single-element array.
+            fallbackVOObjects[i] = { ...fallbackVOs[0], scene: `Scene ${i + 1}: ${phase.label}` };
             rawVOTexts.push(null);
         }
     }
@@ -198,7 +199,7 @@ Penawaran terbatas — jangan sampai kehabisan.
 ${info.name}. Pilihan cerdas untuk hidup yang lebih baik.`;
 }
 
-async function generateSceneVisuals(info, sceneNum, voSnippet, isUGC, totalScenes, categoryData, viralContext) {
+async function generateSceneVisuals(info, sceneNum, voSnippet, isUGC, totalScenes, categoryData, viralContext, sceneVOImperfections) {
     const mode = isUGC ? 'ugc' : 'ads';
     const structure = viralContext ? viralContext.structure : null;
     const phase = structure && structure[sceneNum - 1]
@@ -206,8 +207,10 @@ async function generateSceneVisuals(info, sceneNum, voSnippet, isUGC, totalScene
         : { phase: getSceneArc(mode, sceneNum - 1).phase, label: getSceneArc(mode, sceneNum - 1).label };
     const arc = getSceneArc(mode, sceneNum - 1);
 
-    // Get imperfections from viral engine for UGC
-    const imperfections = viralContext ? viralContext.getImperfectionsForScene() : [];
+    // Reuse imperfections from sceneVO if available (keeps display in sync with prompts)
+    const imperfections = (sceneVOImperfections && sceneVOImperfections.length > 0)
+        ? sceneVOImperfections
+        : (viralContext ? viralContext.getImperfectionsForScene() : []);
     const imperfectionDirective = imperfections.length > 0
         ? `\nREALISM IMPERFECTIONS (MUST include): ${imperfections.join(', ')}`
         : '';
@@ -351,7 +354,7 @@ async function startAI() {
             statusEl.textContent = `🎬 Generate Scene ${i + 1}/${totalScenes}...`;
             progEl.style.width = `${20 + (i + 1) * (70 / totalScenes)}%`;
             const sceneVO = sceneVOs[i] || sceneVOs[sceneVOs.length - 1];
-            const shot = await generateSceneVisuals(info, i + 1, sceneVO.vo, isUGC, totalScenes, categoryData, viralContext);
+            const shot = await generateSceneVisuals(info, i + 1, sceneVO.vo, isUGC, totalScenes, categoryData, viralContext, sceneVO.imperfections);
             shots.push({
                 number: i + 1,
                 ...shot,
