@@ -1,5 +1,5 @@
 // ==================== CONFIG ====================
-const GEMINI_MODEL = 'gemini-2.5-flash-lite'; // gratis, cepat, hemat quota
+const GEMINI_MODEL = 'gemini-2.0-flash-exp'; // gratis, cepat, hemat quota
 function getGeminiApiUrl(key) {
     return `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
 }
