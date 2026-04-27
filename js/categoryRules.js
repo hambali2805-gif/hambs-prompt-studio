@@ -169,7 +169,7 @@ export function getCategoryNegativeContext(categoryData) {
 export function validateCategoryOutput(scenes, categoryKey) {
     const categoryData = CATEGORY_RULES[categoryKey];
     if (!categoryData) {
-        throw new Error(`Category validation failed: unknown category "${categoryKey}"`);
+        return { valid: false, missing: ['unknown category'], message: `Category validation failed: unknown category "${categoryKey}"` };
     }
 
     const allText = scenes
