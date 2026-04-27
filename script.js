@@ -494,15 +494,15 @@ function getStyleContext(isUGC) {
 
 function buildImagePrompt(sceneDesc, voSnippet, isUGC) {
     const gender = getGenderDesc();
+    const style = getStyleContext(isUGC);
     const charRef = hasCharacterReference()
         ? `[REF:CHARACTER] ${gender.subj} (reference character), `
-        : `${gender.subj}, casual outfit, `;
+        : `${gender.subj}, ${style.outfit}, `;
     const prodRef = uploadedFiles.prod.some(p => p)
         ? '[REF:PRODUCT] '
         : `${productName} (${selectedCategory}), `;
     const lens = getLensPrompt();
     const neg = getNegativePrompt();
-    const style = getStyleContext(isUGC);
     const bananaPro = 'shot on 35mm lens, high-resolution photography, photorealistic skin texture, sharp product details, hyper-realistic';
     const isBeverage = productName.toLowerCase().match(/teh|tea|minum|drink|jus|juice|kopi|coffee|susu|milk/);
     const beverageKeywords = isBeverage ? ', cold PET bottle with water condensation droplets, vibrant amber tea color, chilled refreshing look' : '';
@@ -514,10 +514,10 @@ function buildImagePrompt(sceneDesc, voSnippet, isUGC) {
 
 function buildVideoPrompt(sceneDesc, voSnippet, sceneNum, totalScenes, isUGC) {
     const gender = getGenderDesc();
+    const style = getStyleContext(isUGC);
     const charRef = hasCharacterReference()
         ? `${gender.subj} (consistent character from reference), `
-        : `${gender.subj}, casual outfit, `;
-    const style = getStyleContext(isUGC);
+        : `${gender.subj}, ${style.outfit}, `;
     const isBeverage = productName.toLowerCase().match(/teh|tea|minum|drink|jus|juice|kopi|coffee|susu|milk/);
     const beverageDetail = isBeverage ? ', cold PET bottle with visible condensation, refreshing liquid pour' : '';
 
