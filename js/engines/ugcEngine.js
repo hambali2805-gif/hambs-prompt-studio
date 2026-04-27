@@ -105,9 +105,14 @@ export function buildUGCScenePrompt(info, sceneNum, voSnippet, totalScenes, cate
     const categorySensory = categoryData ? pickCategorySensory(categoryData) : '';
     const negativeContext = categoryData ? getCategoryNegativeContext(categoryData) : '';
 
+    const hasUserBackground = !!state.ugcBackground;
+    const envDirective = hasUserBackground
+        ? `- Adapt the user-selected background to feel natural for ${info.category.toLowerCase()} content`
+        : `- Environment MUST be: ${pickCategoryEnvironment(categoryData)}`;
+
     const categoryDirective = categoryData
         ? `\nCATEGORY RULES (${info.category}):
-- Environment MUST be: ${pickCategoryEnvironment(categoryData)}
+${envDirective}
 - Action focus: ${categoryAction}
 - Sensory detail: ${categorySensory}
 - Product interaction: ${categoryData.productInteraction}

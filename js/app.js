@@ -133,14 +133,14 @@ function buildFallbackVO(info, isUGC, categoryData) {
         return `Eh bestie, lo udah nyobain ${info.name} belum? Literally (li-te-re-li) worth it banget sih!
 Gue tuh dulu skeptis sama ${info.category.toLowerCase()}, soalnya udah coba banyak tapi hasilnya gitu-gitu aja.
 Tapi pas nyobain ${info.name} ini, beda banget! ${sensory}.
-Basically (be-si-ke-li) juara sih. End-up gue malah repeat order.
+Basically (be-si-ke-li) juara sih — ${actions}. End-up gue malah repeat order.
 Pokoknya recommended banget! Link di bio, buruan sebelum kehabisan!`;
     }
     return `Pernahkah Anda membayangkan ${info.category.toLowerCase()} yang sempurna?
 Satu nama terus bersinar — ${info.name}.
-Diracik dengan teknologi terdepan dan bahan pilihan terbaik.
-Setiap detail dirancang untuk pengalaman tak tertandingi.
-Rasakan perbedaannya sejak sentuhan pertama.
+${sensory} — setiap detail dirancang untuk pengalaman tak tertandingi.
+Rasakan sendiri: ${actions}.
+Tone: ${voiceStyle}.
 Dipercaya oleh ribuan pelanggan di seluruh Indonesia.
 Lihat bagaimana ${info.name} mengubah rutinitas Anda.
 Karena Anda layak mendapatkan yang terbaik.
