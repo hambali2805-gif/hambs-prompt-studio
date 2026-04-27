@@ -1,22 +1,31 @@
 // ==================== APPLICATION STATE ====================
 export const state = {
-    currentStep: -1,
-    contentStyle: 'IKLAN',
-    uploadedFiles: { char: null, prod: [null, null, null, null] },
+    mode: 'ugc',                    // 'ugc' | 'ads'
     selectedCategory: 'FASHION',
-    selectedStyle: 'LIFESTYLE',
     selectedLang: 'ID',
-    productName: 'Indomie Goreng',
-    productDescription: '',
-    ugcBackground: 'Scandinavian-Japanese fusion, beige limewash wall, light oak wood slats, pampas grass in ceramic vase, linen textures, clean space.',
-    presentationKeywords: 'Direct eye contact, framing: medium close-up, hand gestures, expressive facial expressions, talking to camera, FaceTime-style framing.',
     selectedTone: 'jaksel',
-    lensStyle: 'portrait',
     selectedVideoModel: 'veo',
-    customNegativePrompt: '',
+
+    // Character
+    charPersona: '',
+    charStyle: 'casual',
+    charImage: null,                // { preview: base64 }
+
+    // Products (role system)
+    products: [
+        { name: '', description: '', role: 'primary' }
+    ],
+
+    // Content settings
+    durationTarget: 30,
+    contentStyle: 'lifestyle',      // lifestyle | demo | review
+    platform: '',                   // '' | tiktok | instagram | youtube
+
+    // API
     apiKey: '',
-    generatedData: null,
-    currentProjectName: ''
+
+    // Generated
+    generatedData: null
 };
 
 export function updateState(partial) {

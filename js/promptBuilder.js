@@ -1,6 +1,6 @@
 // ==================== PROMPT BUILDER ====================
 // Category-aware prompt builder. Uses CATEGORY_RULES for all context.
-// No hardcoded product-type detection — category drives everything.
+// Compatible with Product Role System — reads primary product from state.products.
 
 import { engineConfig } from './config.js';
 import { state } from './state.js';
@@ -14,12 +14,18 @@ import { cleanText } from './utils.js';
 import { getCategoryData, pickCategorySensory } from './categoryRules.js';
 
 function hasCharacterReference() {
-    return !!state.uploadedFiles.char;
+    return !!(state.charImage);
+}
+
+function getProductName() {
+    const primary = state.products.find(p => p.role === 'primary');
+    return primary ? primary.name : (state.products[0]?.name || 'Product');
 }
 
 function getGenderDesc() {
-    const g = document.getElementById('charGender')?.value || 'wanita';
-    return g === 'pria'
+    const persona = (state.charPersona || '').toLowerCase();
+    const isPria = persona.includes('pria') || persona.includes('male') || persona.includes('cowok') || persona.includes('man');
+    return isPria
         ? { subj: 'A young Indonesian man', pronoun: 'he', possessive: 'his' }
         : { subj: 'A young Indonesian woman', pronoun: 'she', possessive: 'her' };
 }
@@ -29,9 +35,7 @@ function getNegativePrompt(categoryData) {
     const categoryNeg = categoryData
         ? ', ' + categoryData.negativeContext.join(', ')
         : '';
-    return state.customNegativePrompt
-        ? `${base}${categoryNeg}, ${state.customNegativePrompt}`
-        : `${base}${categoryNeg}`;
+    return `${base}${categoryNeg}`;
 }
 
 function getCategorySensoryDetail(categoryData) {
@@ -42,16 +46,15 @@ function getCategorySensoryDetail(categoryData) {
 export function buildImagePrompt(sceneDesc, voSnippet, isUGC, categoryData) {
     const gender = getGenderDesc();
     const style = isUGC ? getUGCStyleContext(categoryData) : getAdsStyleContext(categoryData);
+    const productName = getProductName();
 
     const charRef = hasCharacterReference()
         ? `[REF:CHARACTER] ${gender.subj} (reference character), `
         : `${gender.subj}, ${style.outfit}, `;
 
-    const prodRef = state.uploadedFiles.prod.some(p => p)
-        ? '[REF:PRODUCT] '
-        : `${state.productName} (${state.selectedCategory}), `;
+    const prodRef = `${productName} (${state.selectedCategory}), `;
 
-    const lens = getVeoLensPrompt(state.lensStyle);
+    const lens = getVeoLensPrompt(state.lensStyle || 'portrait');
     const neg = getNegativePrompt(categoryData);
     const sensoryKw = getCategorySensoryDetail(categoryData);
 
@@ -62,7 +65,7 @@ export function buildImagePrompt(sceneDesc, voSnippet, isUGC, categoryData) {
     const photoRealism = 'shot on 35mm lens, high-resolution photography, photorealistic skin texture, sharp product details, hyper-realistic';
     const styleKeywords = `${style.camera}, ${style.lighting}, ${style.vibe}`;
 
-    const raw = `${charRef}${sceneDesc}. ${prodRef}Product: ${state.productName}${sensoryKw}. ${photoRealism}. ${lens}. ${styleKeywords}. ${realismNote}. --no ${neg}`;
+    const raw = `${charRef}${sceneDesc}. ${prodRef}Product: ${productName}${sensoryKw}. ${photoRealism}. ${lens}. ${styleKeywords}. ${realismNote}. --no ${neg}`;
     return deduplicatePrompt(raw);
 }
 
@@ -70,6 +73,7 @@ export function buildVideoPrompt(sceneDesc, voSnippet, sceneNum, totalScenes, is
     const gender = getGenderDesc();
     const style = isUGC ? getUGCStyleContext(categoryData) : getAdsStyleContext(categoryData);
     const sensoryDetail = getCategorySensoryDetail(categoryData);
+    const productName = getProductName();
 
     const charRef = hasCharacterReference()
         ? `${gender.subj} (consistent character from reference), `
@@ -82,7 +86,7 @@ export function buildVideoPrompt(sceneDesc, voSnippet, sceneNum, totalScenes, is
 
         return deduplicatePrompt(buildSeedanceVideoPrompt({
             charRef, sceneDesc, sensoryDetail, motion, lighting,
-            style: style.vibe, productName: state.productName, interaction
+            style: style.vibe, productName, interaction
         }));
     }
 
@@ -92,7 +96,7 @@ export function buildVideoPrompt(sceneDesc, voSnippet, sceneNum, totalScenes, is
 
     return deduplicatePrompt(buildVeoVideoPrompt({
         charRef, sceneDesc, sensoryDetail, cam, lighting,
-        style: style.vibe, productName: state.productName
+        style: style.vibe, productName
     }));
 }
 
@@ -147,11 +151,10 @@ export function buildStructuredOutput(vo, shots, info, viralContext, sceneVOs) {
             product: info.name,
             category: info.category,
             generatedAt: new Date().toISOString(),
-            engine: 'viral-content-engine-v1'
+            engine: 'production-content-engine-v2'
         }
     };
 
-    // Add viral engine metadata
     if (viralContext) {
         structured.viralEngine = {
             hook: viralContext.hook,

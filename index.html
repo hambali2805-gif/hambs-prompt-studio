@@ -3,264 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HAMBS AI Video Content Engine</title>
-    <link href="https://cdn.jsdelivr.net/npm/fontsource-inter@5.0/index.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <title>HAMBS Prompt Studio — Production Content Tool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- HEADER -->
-<div class="top-bar">
-    <div class="top-bar-left">
-        <button class="btn-header home" id="homeBtn" title="Kembali ke menu utama">🏠</button>
-        <div class="brand"><div class="brand-icon" id="brandIcon">H</div><div class="brand-text"><span class="brand-name">HAMBS</span><span class="brand-sub">PRODUCTION</span></div></div>
-        <div class="tool-badge">AI Video Content Engine v3 — Category-Aware</div>
-    </div>
-    <div class="top-bar-center">
-        <div class="project-selector">
-            <span style="font-size:0.7rem; color:var(--text-muted);">📂 Load:</span>
-            <select id="projectSelect"><option value="">-- Pilih Project --</option></select>
-            <button class="btn-header" id="saveProjectBtn">💾 Save</button>
-            <button class="btn-header" id="exportProjectBtn">📤 Export</button>
-            <button class="btn-header" id="importProjectBtn">📥 Import</button>
+<!-- ========== HEADER ========== -->
+<header class="app-header">
+    <div class="header-brand">
+        <div class="brand-icon">H</div>
+        <div class="brand-text">
+            <span class="brand-name">HAMBS</span>
+            <span class="brand-sub">PROMPT STUDIO</span>
         </div>
     </div>
-    <div class="top-bar-right">
-        <button class="btn-header primary" id="downloadAllBtn">⬇️ Export All</button>
-        <button class="btn-header" id="resetBtn">🗑️ Reset</button>
-    </div>
-</div>
-
-<div class="main-layout">
-    <aside class="sidebar">
-        <div class="sidebar-header"><div class="sidebar-brand"><div class="sidebar-brand-icon" id="sidebarBrandIcon">H</div><div><span class="sidebar-brand-name">HAMBS</span><span class="sidebar-brand-sub">PRODUCTION</span></div></div></div>
-        <div class="steps-container">
-            <div class="step-item" data-step="0"><div class="step-number">1</div><div class="step-info"><span class="step-title">UNGGAH ASET</span><span class="step-desc">Produk & Karakter</span></div></div>
-            <div class="step-item" data-step="1"><div class="step-number">2</div><div class="step-info"><span class="step-title">PARAMETER</span><span class="step-desc">Engine & Gaya</span></div></div>
-            <div class="step-item" data-step="2"><div class="step-number">3</div><div class="step-info"><span class="step-title">EKSEKUSI AI</span><span class="step-desc">Generate</span></div></div>
-            <div class="step-item" data-step="3"><div class="step-number">4</div><div class="step-info"><span class="step-title">MASTER PLAN</span><span class="step-desc">Hasil Generate</span></div></div>
+    <div class="header-controls">
+        <div class="mode-toggle" id="modeToggle">
+            <button class="toggle-btn active" data-mode="ugc">UGC</button>
+            <button class="toggle-btn" data-mode="ads">ADS</button>
         </div>
-        <div class="sidebar-footer"><span>DUAL ENGINE <strong>UGC + ADS</strong></span></div>
-    </aside>
+        <select class="category-select" id="categorySelect">
+            <option value="FASHION">Fashion</option>
+            <option value="SKINCARE">Skincare</option>
+            <option value="MAKANAN">Makanan</option>
+            <option value="MINUMAN">Minuman</option>
+            <option value="ELEKTRONIK">Elektronik</option>
+        </select>
+        <button class="btn-generate" id="generateBtn">Generate</button>
+    </div>
+</header>
 
-    <main class="content-area" id="contentArea">
-        <!-- MODE SELECTION PANEL -->
-        <div class="step-panel active" id="panel-mode">
-            <div class="mode-container">
-                <h1 class="mode-title">Pilih Engine</h1>
-                <p class="mode-subtitle">Dua engine berbeda dengan aturan, prompt, dan output yang sepenuhnya terpisah.</p>
-                <div class="mode-cards">
-                    <div class="mode-card mode-card-ads" id="cardIklan">
-                        <div class="mode-icon">🎥</div>
-                        <h2>ADS ENGINE</h2>
-                        <div class="mode-card-subtitle">Cinematic Mode</div>
-                        <ul>
-                            <li>10 Scene Cinematic</li>
-                            <li>Narator Off-Screen</li>
-                            <li>Durasi 60 Detik</li>
-                            <li>Cinematic Lighting & Framing</li>
-                            <li>Smooth Camera Motion</li>
-                            <li>Product Beauty Focus</li>
-                        </ul>
-                        <button class="mode-btn">PILIH ADS ENGINE</button>
-                    </div>
-                    <div class="mode-card mode-card-ugc" id="cardUGC">
-                        <div class="mode-icon">📱</div>
-                        <h2>UGC ENGINE</h2>
-                        <div class="mode-card-subtitle">Realism Mode</div>
-                        <ul>
-                            <li>5 Shot Dinamis</li>
-                            <li>Karakter Bicara Langsung</li>
-                            <li>Story Arc: Hook→Problem→Discovery→Proof→CTA</li>
-                            <li>Handheld Phone Simulation</li>
-                            <li>Natural Imperfections</li>
-                            <li>Authentic Feel</li>
-                        </ul>
-                        <button class="mode-btn">PILIH UGC ENGINE</button>
-                    </div>
-                </div>
+<!-- ========== MAIN LAYOUT ========== -->
+<div class="app-layout">
+
+    <!-- ===== INPUT PANEL ===== -->
+    <section class="input-panel" id="inputPanel">
+
+        <!-- API KEY -->
+        <div class="card" id="apiKeyCard">
+            <div class="card-title">API Key</div>
+            <div class="api-row">
+                <input type="password" id="apiKeyInput" class="input-field" placeholder="Google AI Studio API Key">
+                <button class="btn-sm btn-accent" id="saveApiKeyBtn">Save</button>
             </div>
+            <button class="btn-sm btn-outline full-w" id="testApiBtn">Test Connection</button>
+            <div class="api-status" id="apiWarning">API Key not saved.</div>
+            <div class="api-test-result" id="apiTestResult"></div>
         </div>
 
-        <!-- STEP 1: UNGGAH ASET -->
-        <div class="step-panel" id="panel-0">
-            <div class="panel-header"><div class="panel-step-label">LANGKAH 1 DARI 4</div><h1 class="panel-title">1. UNGGAH VISUAL</h1></div>
-            
-            <div class="api-key-section">
-                <div class="api-key-header">🔑 API KEY GOOGLE AI STUDIO</div>
-                <div class="api-key-input-wrapper"><input type="password" id="apiKeyInput" class="api-key-input" placeholder="AIzaSy..."><button class="btn-save-key" id="saveApiKeyBtn">SIMPAN</button></div>
-                <button class="btn-test-key" id="testApiBtn">🔌 TES KONEKSI API</button>
-                <div class="origin-warning" id="originWarning"></div>
-                <div class="api-test-result" id="apiTestResult"></div>
-                <div class="api-warning" id="apiWarning">⚠️ API Key belum disimpan.</div>
+        <!-- CHARACTER -->
+        <div class="card">
+            <div class="card-title">Character</div>
+            <div class="field-group">
+                <label class="field-label">Persona</label>
+                <input type="text" id="charPersona" class="input-field" placeholder="e.g. Gen-Z beauty enthusiast, 22 tahun">
             </div>
-
-            <div class="upload-section">
-                <div class="upload-grid single">
-                    <div class="upload-box" id="charUpload"><div class="upload-icon">📷</div><div class="upload-text">Upload Karakter (Model)</div></div>
+            <div class="field-row">
+                <div class="field-group flex-1">
+                    <label class="field-label">Style</label>
+                    <select id="charStyle" class="input-field">
+                        <option value="casual">Casual</option>
+                        <option value="creator">Creator</option>
+                        <option value="professional">Professional</option>
+                    </select>
                 </div>
-                <div class="gender-selector">
-                    <label>🧑 Gender Karakter:</label>
-                    <select id="charGender">
-                        <option value="wanita" selected>👩 Wanita</option>
-                        <option value="pria">👨 Pria</option>
+                <div class="field-group flex-1">
+                    <label class="field-label">Language</label>
+                    <select id="charLang" class="input-field">
+                        <option value="ID">Indonesia</option>
+                        <option value="EN">English</option>
                     </select>
                 </div>
             </div>
-            <div class="upload-section"><div class="upload-grid two-col">
-                <div class="upload-box" id="prod1"><div class="upload-icon">📷</div><div class="upload-text">Produk 1</div></div>
-                <div class="upload-box" id="prod2"><div class="upload-icon">📷</div><div class="upload-text">Produk 2</div></div>
-                <div class="upload-box" id="prod3"><div class="upload-icon">📷</div><div class="upload-text">Produk 3</div></div>
-                <div class="upload-box" id="prod4"><div class="upload-icon">📷</div><div class="upload-text">Produk 4</div></div>
-            </div></div>
-            <button class="btn-confirm" id="btnStep1" disabled>KONFIRMASI VISUAL →</button>
-        </div>
-
-        <!-- STEP 2: PARAMETER KONTEN -->
-        <div class="step-panel" id="panel-1">
-            <div class="panel-header"><div class="panel-step-label">LANGKAH 2 DARI 4</div><h1 class="panel-title">2. ENGINE CONFIG & PARAMETER</h1></div>
-
-            <!-- ENGINE CONFIG SECTION -->
-            <div class="engine-config-section">
-                <div class="engine-config-title">⚙️ ENGINE CONFIGURATION</div>
-                <div class="engine-config-grid">
-                    <div class="config-item">
-                        <label class="config-label">🎭 Persona</label>
-                        <select id="personaSelect" class="config-select">
-                            <option value="best_friend">👯 Best Friend</option>
-                            <option value="reviewer">🔍 Honest Reviewer</option>
-                            <option value="seller">💼 Confident Seller</option>
-                            <option value="storyteller">📖 Storyteller</option>
-                        </select>
-                        <p class="config-hint">Gaya bicara dan tone voiceover</p>
-                    </div>
-                    <div class="config-item">
-                        <label class="config-label">⚡ Energy Level</label>
-                        <select id="energySelect" class="config-select">
-                            <option value="low">🌙 Calm & Soft</option>
-                            <option value="medium" selected>⚡ Balanced</option>
-                            <option value="high">🔥 Energetic</option>
-                            <option value="chaotic">🌪️ Chaotic / Viral</option>
-                        </select>
-                        <p class="config-hint">Pacing, tempo, dan gaya editing</p>
-                    </div>
-                    <div class="config-item config-item-full">
-                        <label class="config-label">📊 Realism Level: <span id="realismValue">70</span>%</label>
-                        <input type="range" id="realismSlider" class="config-slider" min="0" max="100" value="70">
-                        <div class="slider-labels">
-                            <span>0% Polished</span>
-                            <span>50% Natural</span>
-                            <span>100% Raw</span>
-                        </div>
-                        <p class="config-hint">Seberapa "mentah" visual output (imperfections, camera shake, dll)</p>
-                    </div>
+            <div class="field-group">
+                <label class="field-label">Tone</label>
+                <select id="charTone" class="input-field">
+                    <option value="jaksel">Anak Jaksel (sih, dong, gue, lo)</option>
+                    <option value="santai">Santai Biasa</option>
+                    <option value="formal">Formal / Professional</option>
+                    <option value="energetic">Energetic / Hype</option>
+                </select>
+            </div>
+            <div class="field-group">
+                <label class="field-label">Character Image (optional)</label>
+                <div class="upload-box" id="charUpload">
+                    <span class="upload-placeholder">+ Upload</span>
                 </div>
-            </div>
-
-            <div class="form-section"><div class="form-section-title">NAMA PRODUK *</div><input type="text" class="text-input" value="Indomie Goreng" id="productName"></div>
-            <div class="form-section"><div class="form-section-title">DESKRIPSI (OPSIONAL)</div><textarea id="productDescription" class="text-input" rows="3" placeholder="Detail produk..."></textarea></div>
-            <div class="form-section"><div class="form-section-title">KATEGORI</div><div class="options-grid" id="categoryGrid">
-                <button class="option-btn">SKINCARE</button><button class="option-btn selected">FASHION</button><button class="option-btn">MAKANAN</button><button class="option-btn">MINUMAN</button><button class="option-btn">ELEKTRONIK</button>
-            </div></div>
-            <div class="form-section"><div class="form-section-title">GAYA VIDEO</div><div class="options-grid" id="styleGrid">
-                <button class="option-btn">CINEMATIC</button><button class="option-btn selected purple">LIFESTYLE</button><button class="option-btn">UGC</button><button class="option-btn">MACRO</button>
-            </div></div>
-            <div class="form-section">
-                <div class="form-section-title">🎙️ GAYA BICARA (Untuk Naskah UGC)</div>
-                <div class="options-grid" id="toneGrid">
-                    <button class="option-btn selected" data-tone="jaksel">Anak Jaksel (sih, dong, gue, lo)</button>
-                    <button class="option-btn" data-tone="santai">Santai Biasa</button>
-                </div>
-            </div>
-            <div class="form-section">
-                <div class="form-section-title">📷 GAYA LENSA (untuk Gambar)</div>
-                <div class="options-grid" id="lensGrid">
-                    <button class="option-btn selected" data-lens="portrait">📸 Portrait (85mm) - Fokus Wajah, Bokeh</button>
-                    <button class="option-btn" data-lens="lifestyle">🛋️ Lifestyle (35mm) - Model & Lingkungan</button>
-                    <button class="option-btn" data-lens="macro">🔍 Macro (100mm) - Detail Produk</button>
-                </div>
-            </div>
-            <div class="form-section">
-                <div class="form-section-title">🎥 MODEL VIDEO AI (Platform)</div>
-                <div class="options-grid" id="videoModelGrid">
-                    <button class="option-btn selected" data-model="veo">Veo 3.1 — Lens, DOF, Cinematic Lighting</button>
-                    <button class="option-btn" data-model="seedance">Seedance 2.0 — Motion, Interaction, Dynamics</button>
-                </div>
-                <p class="input-hint">Veo: detail lensa, depth of field, cinematic lighting. Seedance: motion & interaksi real-time.</p>
-            </div>
-            <div class="form-section">
-                <div class="form-section-title">🎬 LATAR BELAKANG UGC (Pilih Salah Satu)</div>
-                <div class="options-grid" id="ugcBgGrid">
-                    <button class="option-btn selected" data-keywords="Scandinavian-Japanese fusion, beige limewash wall, light oak wood slats, pampas grass in ceramic vase, linen textures, clean space.">Japandi Minimalist</button>
-                    <button class="option-btn" data-keywords="White marble vanity, large backlit round mirror, brass faucets, luxury toiletries, glass shower partition, fluffy white towels.">Modern Luxury Bathroom</button>
-                    <button class="option-btn" data-keywords="Unmade bed, white linen sheets, messy pillows, bedside wooden table, warm lamp, soft morning haze, floating dust particles.">Cozy Bedroom (Vibe)</button>
-                    <button class="option-btn" data-keywords="Exposed red brick, polished concrete floor, matte black furniture, RGB LED strips (subtle), large crittall windows, metal shelves.">Industrial Tech Loft</button>
-                    <button class="option-btn" data-keywords="White quartz countertop, subway tiles, wooden cutting board, fruit bowl, stainless steel kettle, minimalist jars, herb plants.">Aesthetic Kitchen</button>
-                    <button class="option-btn" data-keywords="Leather car seats, steering wheel texture, dashboard depth of field, blurred bokeh street background through the window, seatbelt detail.">Car Interior (POV)</button>
-                    <button class="option-btn" data-keywords="Wooden desk, MacBook setup, notebook, coffee mug, monitor glow, small desk plant, acoustic foam panels in background.">Home Office / Desk</button>
-                    <button class="option-btn" data-keywords="Monstera leaves, palm fronds, terracotta pots, wooden deck, outdoor sunlight, soft shadows from leaves, backyard vibe.">Tropical Garden</button>
-                    <button class="option-btn" data-keywords="Blurred coffee shop background, wooden table texture, industrial pendant lights, window reflections, people walking (bokeh).">Cafe / Coffee Shop</button>
-                    <button class="option-btn" data-keywords="Dumbbell racks, yoga mat texture, large mirrors, industrial ceiling, sweat-friendly atmosphere, gym floor rubber mat.">Gym / Fitness Studio</button>
-                    <button class="option-btn" data-keywords="Modern washer & dryer, laundry detergent bottles, white wicker basket, clean folded clothes, tiled floor, bright utility room.">Laundry / Utility</button>
-                    <button class="option-btn" data-keywords="Plush carpet, velvet sofa, city skyline view through floor-to-ceiling windows, champagne glass, golden accents.">Luxury Hotel / Suite</button>
-                    <button class="option-btn" data-keywords="Concrete wall, graffiti (subtle), metal fence, asphalt texture, urban bokeh, street signs, city vibe.">Street Style Urban</button>
-                    <button class="option-btn" data-keywords="Macro ripple water, crumpled silk fabric, raw travertine stone, sand dunes texture, soft clay surface.">Abstract Textured</button>
-                    <button class="option-btn" data-keywords="Art studio, paint splatters, polaroid photos on wall, messy sketches, vintage camera, warm chaotic aesthetic.">The Messy Creative</button>
-                </div>
-            </div>
-            <div class="form-section">
-                <div class="form-section-title">🎭 GAYA PRESENTASI UGC (Pilih Salah Satu)</div>
-                <div class="options-grid" id="presentationGrid">
-                    <button class="option-btn selected" data-keywords="Direct eye contact, framing: medium close-up, hand gestures, expressive facial expressions, talking to camera, FaceTime-style framing.">The Talking Head</button>
-                    <button class="option-btn" data-keywords="First-person perspective, focus on hands interacting with product, eye-level camera, handheld movement, realistic hand interaction.">The POV (Point of View)</button>
-                    <button class="option-btn" data-keywords="Extreme close-up (macro), focus on sound-heavy actions (tapping, clicking, pouring), slow movements, high texture detail, no talking.">ASMR / Lo-Fi</button>
-                    <button class="option-btn" data-keywords="Multitasking, talent applying product while talking, casual outfit, movement between mirror and camera, natural everyday flow.">GRWM (Get Ready With Me)</button>
-                    <button class="option-btn" data-keywords="Tearing package, peeling off plastic, focus on initial reaction, high anticipation, showing all contents, natural lighting reflections.">Raw Unboxing</button>
-                    <button class="option-btn" data-keywords="Split screen or sequence: 1. Frustrated face/problem situation, 2. Relaxed face holding the product as the hero, fast-paced cuts.">The Problem-Solution</button>
-                    <button class="option-btn" data-keywords="Slow motion (60fps), panning shots, rack focus from background to product, aesthetic lighting flares, artistic angles, smooth transitions.">Cinematic B-Roll</button>
-                    <button class="option-btn" data-keywords="Sitting on floor or bed, leaning against wall, informal posture, holding product close to lens to show detail, smiling, casual spill vibe.">The Girl/Boy Next Door</button>
-                    <button class="option-btn" data-keywords="Live application, showing real-time results (e.g., rubbing cream on skin, turning on device), focus on efficacy, clear before vs after cues.">Testing / Demo</button>
-                    <button class="option-btn" data-keywords="Pulling product out from a cluttered bag or compartment, casual discovery, showing the product in the wild or being used daily.">What's In My Bag/Car</button>
-                    <button class="option-btn" data-keywords="Talent in the corner of the frame, pointing to a background screenshot (review/website/news), reacting with shock or agreement.">Green Screen Reaction</button>
-                    <button class="option-btn" data-keywords="Fast-paced montage, product appears in various scenes throughout the day, lifestyle integration, mix of wide and close-up shots.">Day in the Life (DITL)</button>
-                </div>
-            </div>
-            <div class="form-section">
-                <div class="form-section-title">🚫 NEGATIVE PROMPT KUSTOM (Larangan Tambahan)</div>
-                <textarea id="customNegativePrompt" class="text-input" rows="2" placeholder="tangan berbulu, hijab, teks, watermark, studio lighting..."></textarea>
-            </div>
-            <div class="form-section"><div class="form-section-title">BAHASA</div><div class="options-grid" id="langGrid">
-                <button class="option-btn selected">🇮🇩 INDONESIA</button><button class="option-btn">🇬🇧 ENGLISH</button>
-            </div></div>
-            <div class="nav-buttons"><button class="btn-secondary-action" id="backToModeBtn">KEMBALI</button><button class="btn-primary-action" id="generateBtn">✨ GENERATE</button></div>
-        </div>
-
-        <!-- STEP 3: LOADING -->
-        <div class="step-panel" id="panel-2">
-            <div class="loading-screen active">
-                <div class="loading-spinner"><div class="spinner-ring"></div><div class="spinner-ring"></div></div>
-                <h2 id="loadingTitle">AI ENGINE IS WORKING...</h2>
-                <div class="loading-progress"><div class="loading-progress-bar" id="progressBar"></div></div>
-                <div id="loadingStatus">Memulai...</div>
             </div>
         </div>
 
-        <!-- STEP 4: MASTER PLAN -->
-        <div class="step-panel" id="panel-3">
-            <div class="master-plan-header"><h1>MASTER <span style="color:var(--accent-blue)">PROMPT PACK</span></h1><div><button class="btn-copy" id="copyAllBtn">📋 SALIN</button><button class="btn-copy" id="downloadAllMasterBtn" style="border-color:var(--accent-green);color:var(--accent-green);">⬇️ DOWNLOAD</button></div></div>
-            <div class="voiceover-section">
-                <div class="voiceover-header"><span>🎙️ NASKAH VOICEOVER (Dengan Ejaan Fonetik)</span><button class="btn-copy" id="copyVOBtn">📋 SALIN</button></div>
-                <div class="voiceover-text" id="fullVO"></div>
-            </div>
-            <div id="shotCards"></div>
+        <!-- PRODUCTS -->
+        <div class="card">
+            <div class="card-title">Products <span class="badge">Role System</span></div>
+            <div id="productList"></div>
+            <button class="btn-sm btn-outline full-w" id="addProductBtn">+ Add Product</button>
+            <div class="validation-msg" id="productValidation"></div>
         </div>
-    </main>
+
+        <!-- CONTENT SETTINGS -->
+        <div class="card">
+            <div class="card-title">Content Settings</div>
+            <div class="field-row">
+                <div class="field-group flex-1">
+                    <label class="field-label">Duration</label>
+                    <select id="durationTarget" class="input-field">
+                        <option value="15">15 seconds</option>
+                        <option value="30" selected>30 seconds</option>
+                        <option value="60">60 seconds</option>
+                    </select>
+                </div>
+                <div class="field-group flex-1">
+                    <label class="field-label">Style</label>
+                    <select id="contentStyleSelect" class="input-field">
+                        <option value="lifestyle">Lifestyle</option>
+                        <option value="demo">Demo</option>
+                        <option value="review">Review</option>
+                    </select>
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field-group flex-1">
+                    <label class="field-label">Platform (optional)</label>
+                    <select id="platformSelect" class="input-field">
+                        <option value="">Any</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="instagram">Instagram Reels</option>
+                        <option value="youtube">YouTube Shorts</option>
+                    </select>
+                </div>
+                <div class="field-group flex-1">
+                    <label class="field-label">Video Model</label>
+                    <select id="videoModelSelect" class="input-field">
+                        <option value="veo">Veo 3.1</option>
+                        <option value="seedance">Seedance 2.0</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- ===== OUTPUT PANEL ===== -->
+    <section class="output-panel" id="outputPanel">
+
+        <!-- EMPTY STATE -->
+        <div class="output-empty" id="outputEmpty">
+            <div class="empty-icon">🎬</div>
+            <h2>Ready to Generate</h2>
+            <p>Configure your character, products, and settings, then hit <strong>Generate</strong>.</p>
+        </div>
+
+        <!-- LOADING STATE -->
+        <div class="output-loading hidden" id="outputLoading">
+            <div class="loader-ring"></div>
+            <h3 id="loadingTitle">Generating...</h3>
+            <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+            <div class="loading-status" id="loadingStatus">Starting...</div>
+        </div>
+
+        <!-- RESULTS -->
+        <div class="output-results hidden" id="outputResults">
+            <div class="results-header">
+                <h2>Scene Output</h2>
+                <button class="btn-sm btn-accent" id="copyAllBtn">Copy All Scenes</button>
+            </div>
+            <div id="sceneContainer"></div>
+        </div>
+
+    </section>
 </div>
 
+<!-- SESSION BADGE -->
 <div class="session-badge" id="sessionBadge">
     <span class="dot"></span>
-    <span>💾 Sesi Tersimpan</span>
+    <span>Session saved</span>
 </div>
 
 <script type="module" src="js/app.js"></script>
