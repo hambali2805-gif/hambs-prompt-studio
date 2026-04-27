@@ -39,7 +39,7 @@ export function getUGCStyleContext(categoryData) {
         camera: `handheld phone camera, ${pickRandom(UGC_IMPERFECTIONS)}, selfie-mode framing`,
         lighting: 'natural light only — window, ambient room, or outdoor. NO studio setup.',
         vibe: `casual, relatable, person-next-door, ${energy.pacing}`,
-        background: environment,
+        background: state.ugcBackground || environment,
         outfit: 'casual everyday outfit, no professional styling',
         imperfections: `Realism level: ${realism}/100 (${imperfectionLevel}). Include natural imperfections: ${pickRandom(UGC_IMPERFECTIONS)}.`,
         energy: energy.pacing,
@@ -105,7 +105,10 @@ export function buildUGCScenePrompt(info, sceneNum, voSnippet, totalScenes, cate
     const categorySensory = categoryData ? pickCategorySensory(categoryData) : '';
     const negativeContext = categoryData ? getCategoryNegativeContext(categoryData) : '';
 
-    const envDirective = `- Environment MUST be: ${style.background}`;
+    const hasUserBackground = !!state.ugcBackground;
+    const envDirective = hasUserBackground
+        ? `- Adapt the user-selected background to feel natural for ${info.category.toLowerCase()} content`
+        : `- Environment MUST be: ${style.background}`;
 
     const categoryDirective = categoryData
         ? `\nCATEGORY RULES (${info.category}):
@@ -129,7 +132,7 @@ ${variation.directive}
 Produk: ${info.name} (${info.category})
 Naskah scene ini: "${voSnippet}"
 Latar belakang: ${style.background} [LOCK: semua scene HARUS di lokasi yang sama]
-Gaya presentasi: Direct eye contact, framing: medium close-up, hand gestures, expressive facial expressions, talking to camera
+Gaya presentasi: ${state.presentationKeywords}
 Karakter: ${gender.subj}, ${style.outfit}
 ${categoryDirective}
 
@@ -150,9 +153,8 @@ Output HANYA deskripsi visual, tanpa judul atau label.`;
 }
 
 function getGenderDesc() {
-    const persona = state.charPersona || '';
-    const isPria = /\b(pria|male|cowok|man|laki)\b/i.test(persona);
-    return isPria
+    const g = document.getElementById('charGender')?.value || 'wanita';
+    return g === 'pria'
         ? { subj: 'A young Indonesian man', pronoun: 'he', possessive: 'his' }
         : { subj: 'A young Indonesian woman', pronoun: 'she', possessive: 'her' };
 }
