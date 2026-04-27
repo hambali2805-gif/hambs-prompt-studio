@@ -117,15 +117,24 @@ Satu paragraf narasi teknis.`
     }
 }
 
-export function buildStructuredOutput(vo, shots, info) {
-    return {
+export function buildStructuredOutput(vo, shots, info, viralContext, sceneVOs) {
+    const structured = {
         voiceover: vo,
-        scenes: shots.map(shot => ({
-            shot: shot.title,
-            visual_prompt: shot.imagePrompt,
-            motion: shot.videoPrompt,
-            purpose: shot.arcPhase || shot.title
-        })),
+        scenes: shots.map((shot, i) => {
+            const sceneVO = sceneVOs ? sceneVOs[i] : null;
+            return {
+                shot: shot.title,
+                scene: sceneVO ? sceneVO.scene : `Scene ${i + 1}`,
+                vo: sceneVO ? sceneVO.vo : (shot.voSnippet || ''),
+                duration: sceneVO ? sceneVO.duration : '2-4s',
+                phase: sceneVO ? sceneVO.phase : (shot.arcPhase || ''),
+                emotion: sceneVO ? sceneVO.emotion : null,
+                imperfections: sceneVO ? sceneVO.imperfections : [],
+                visual_prompt: shot.imagePrompt,
+                motion: shot.videoPrompt,
+                purpose: shot.arcPhase || shot.title
+            };
+        }),
         config: {
             mode: engineConfig.mode,
             platform: engineConfig.platform,
@@ -137,7 +146,20 @@ export function buildStructuredOutput(vo, shots, info) {
         meta: {
             product: info.name,
             category: info.category,
-            generatedAt: new Date().toISOString()
+            generatedAt: new Date().toISOString(),
+            engine: 'viral-content-engine-v1'
         }
     };
+
+    // Add viral engine metadata
+    if (viralContext) {
+        structured.viralEngine = {
+            hook: viralContext.hook,
+            emotionalTrigger: viralContext.emotionalTrigger,
+            structure: viralContext.structure.map(s => s.phase),
+            structureLabels: viralContext.structure.map(s => s.label)
+        };
+    }
+
+    return structured;
 }
