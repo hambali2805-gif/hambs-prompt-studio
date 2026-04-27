@@ -14,6 +14,8 @@ import { resetVariationTracker } from './core/sceneVariation.js';
 import { getSceneArc } from './core/storyArc.js';
 import { enforceCTA } from './core/ctaBuilder.js';
 import { getCategoryData, validateCategoryOutput, CATEGORY_RULES } from './categoryRules.js';
+import { applyViralEngine, validateViralOutput } from './engines/viralEngine.js';
+import { buildSceneVOPrompt, buildPerSceneVO, buildFallbackPerSceneVO, humanizeVO, validateVOSync } from './engines/voEngine.js';
 import {
     saveSession, restoreSession, clearSession, handleFile, removeUpload,
     updateConfirmBtn, loadProjectList, saveCurrentProject, exportProject,
@@ -84,8 +86,8 @@ function selOpt(btn, grp) {
 }
 
 // ==================== CENTRAL ENTRY POINT ====================
+// Pipeline: Input → Category Engine → Viral Engine → VO Engine → Final Output.
 // All generation flows through this function.
-// It resolves category rules and delegates to UGC or Ads builders.
 
 function generatePrompt(config) {
     const categoryData = CATEGORY_RULES[config.selectedCategory];
@@ -94,19 +96,25 @@ function generatePrompt(config) {
         throw new Error('Unsupported category: ' + config.selectedCategory);
     }
 
-    if (config.mode === 'ugc') {
-        return { categoryData, builder: 'ugc' };
+    if (config.mode !== 'ugc' && config.mode !== 'ads') {
+        throw new Error('Invalid mode: ' + config.mode);
     }
 
-    if (config.mode === 'ads') {
-        return { categoryData, builder: 'ads' };
-    }
+    // Step 1: Category Engine (already resolved)
+    // Step 2: Viral Engine layer
+    const viralContext = applyViralEngine(config.selectedCategory, config.mode);
 
-    throw new Error('Invalid mode: ' + config.mode);
+    return {
+        categoryData,
+        builder: config.mode,
+        viralContext
+    };
 }
 
 // ==================== GENERATE LOGIC ====================
-async function generateVO(info, isUGC, categoryData) {
+
+// Legacy global VO generator (kept for fallback compatibility)
+async function generateGlobalVO(info, isUGC, categoryData) {
     try {
         const prompt = isUGC
             ? buildUGCVoiceoverPrompt(info, categoryData)
@@ -119,9 +127,52 @@ async function generateVO(info, isUGC, categoryData) {
         }
         return lines.join('\n');
     } catch (e) {
-        console.error('Gagal generate VO:', e);
+        console.error('Gagal generate global VO:', e);
         return buildFallbackVO(info, isUGC, categoryData);
     }
+}
+
+// Per-scene VO generator (Viral Engine + VO Engine pipeline)
+async function generatePerSceneVO(info, isUGC, categoryData, viralContext, totalScenes) {
+    const structure = viralContext.structure;
+    const rawVOTexts = [];
+    const fallbackVOObjects = {};
+
+    for (let i = 0; i < totalScenes; i++) {
+        const phase = structure[i] || structure[structure.length - 1];
+        try {
+            const prompt = buildSceneVOPrompt({
+                info,
+                sceneIndex: i,
+                totalScenes,
+                phase: phase.phase,
+                phaseLabel: phase.label,
+                isUGC,
+                categoryData,
+                viralContext,
+                previousVOs: rawVOTexts.filter(v => v !== null)
+            });
+            const rawVO = cleanText(await callAI(prompt));
+            rawVOTexts.push(rawVO);
+        } catch (e) {
+            console.error(`Scene ${i + 1} VO fallback:`, e);
+            // buildFallbackPerSceneVO already applies humanizeVO + enforceCTA,
+            // so store the complete object to avoid double-processing.
+            const fallbackVOs = buildFallbackPerSceneVO(info, [phase], viralContext, isUGC, categoryData);
+            // Fix scene label: buildFallbackPerSceneVO always produces "Scene 1" since it receives a single-element array.
+            fallbackVOObjects[i] = { ...fallbackVOs[0], scene: `Scene ${i + 1}: ${phase.label}` };
+            rawVOTexts.push(null);
+        }
+    }
+
+    // Build per-scene VO objects with humanization (only for AI-generated texts)
+    const processed = buildPerSceneVO(
+        rawVOTexts.map(t => t || ''),
+        structure, viralContext, state.selectedLang
+    );
+
+    // Merge: use pre-processed fallback objects where AI failed
+    return processed.map((vo, i) => fallbackVOObjects[i] || vo);
 }
 
 function buildFallbackVO(info, isUGC, categoryData) {
@@ -148,16 +199,35 @@ Penawaran terbatas — jangan sampai kehabisan.
 ${info.name}. Pilihan cerdas untuk hidup yang lebih baik.`;
 }
 
-async function generateSceneVisuals(info, sceneNum, voSnippet, isUGC, totalScenes, categoryData) {
+async function generateSceneVisuals(info, sceneNum, voSnippet, isUGC, totalScenes, categoryData, viralContext, sceneVOImperfections) {
     const mode = isUGC ? 'ugc' : 'ads';
+    const structure = viralContext ? viralContext.structure : null;
+    const phase = structure && structure[sceneNum - 1]
+        ? structure[sceneNum - 1]
+        : { phase: getSceneArc(mode, sceneNum - 1).phase, label: getSceneArc(mode, sceneNum - 1).label };
     const arc = getSceneArc(mode, sceneNum - 1);
+
+    // Reuse imperfections from sceneVO if available (keeps display in sync with prompts)
+    const imperfections = (sceneVOImperfections && sceneVOImperfections.length > 0)
+        ? sceneVOImperfections
+        : (viralContext ? viralContext.getImperfectionsForScene() : []);
+    const imperfectionDirective = imperfections.length > 0
+        ? `\nREALISM IMPERFECTIONS (MUST include): ${imperfections.join(', ')}`
+        : '';
+
+    // Emotional direction from viral engine
+    const emotionDirective = viralContext
+        ? `\nEMOTIONAL TONE: ${viralContext.emotionalTrigger.emotion} — ${viralContext.emotionalTrigger.description}`
+        : '';
 
     let sceneDescription;
     try {
         const scenePrompt = isUGC
             ? buildUGCScenePrompt(info, sceneNum, voSnippet, totalScenes, categoryData)
             : buildAdsScenePrompt(info, sceneNum, voSnippet, totalScenes, categoryData);
-        sceneDescription = cleanText(await callAI(scenePrompt));
+        // Inject viral directives into the prompt
+        const enhancedPrompt = scenePrompt + emotionDirective + imperfectionDirective;
+        sceneDescription = cleanText(await callAI(enhancedPrompt));
     } catch (e) {
         console.error(`Scene ${sceneNum} fallback:`, e);
         sceneDescription = buildFallbackScene(info, sceneNum, isUGC, categoryData);
@@ -175,12 +245,13 @@ async function generateSceneVisuals(info, sceneNum, voSnippet, isUGC, totalScene
     }
 
     return {
-        title: arc.label,
-        arcPhase: arc.phase,
+        title: phase.label || arc.label,
+        arcPhase: phase.phase || arc.phase,
         description: sceneDescription,
         imagePrompt,
         videoPrompt,
-        voSnippet
+        voSnippet,
+        imperfections
     };
 }
 
@@ -243,7 +314,7 @@ async function startAI() {
         return;
     }
 
-    const { categoryData } = resolved;
+    const { categoryData, viralContext } = resolved;
 
     goToStep(2, { force: true });
     const statusEl = document.getElementById('loadingStatus');
@@ -251,42 +322,98 @@ async function startAI() {
     const info = { name: state.productName, category: state.selectedCategory, desc: state.productDescription };
 
     try {
-        statusEl.textContent = '🎙️ Generate naskah...';
+        // ===== STEP 1: Viral Engine context (already resolved) =====
+        statusEl.textContent = '🔥 Viral Engine aktif...';
+        progEl.style.width = '5%';
+        console.log('Viral context:', {
+            hook: viralContext.hook,
+            emotion: viralContext.emotionalTrigger.emotion,
+            structure: viralContext.structure.map(s => s.phase).join(' → ')
+        });
+        await delay(500);
+
+        // ===== STEP 2: Per-scene VO generation (VO Engine) =====
+        statusEl.textContent = '🎙️ Generate VO per scene...';
         progEl.style.width = '10%';
-        const vo = await generateVO(info, isUGC, categoryData);
+
+        let sceneVOs;
+        try {
+            sceneVOs = await generatePerSceneVO(info, isUGC, categoryData, viralContext, totalScenes);
+        } catch (e) {
+            console.warn('Per-scene VO failed, using fallback:', e);
+            sceneVOs = buildFallbackPerSceneVO(info, viralContext.structure, viralContext, isUGC, categoryData);
+        }
+
+        // Combine all VOs for display
+        const vo = sceneVOs.map(sv => `(Scene ${sceneVOs.indexOf(sv) + 1} - ${sv.phase}) ${sv.vo}`).join('\n');
         document.getElementById('fullVO').textContent = vo;
 
-        const voSnippets = splitVO(vo, totalScenes);
+        // ===== STEP 3: Scene visual generation =====
         const shots = [];
         for (let i = 0; i < totalScenes; i++) {
             statusEl.textContent = `🎬 Generate Scene ${i + 1}/${totalScenes}...`;
             progEl.style.width = `${20 + (i + 1) * (70 / totalScenes)}%`;
-            const shot = await generateSceneVisuals(info, i + 1, voSnippets[i] || vo, isUGC, totalScenes, categoryData);
-            shots.push({ number: i + 1, ...shot, headerColor: SHOT_COLORS[i] || 'yellow' });
+            const sceneVO = sceneVOs[i] || sceneVOs[sceneVOs.length - 1];
+            const shot = await generateSceneVisuals(info, i + 1, sceneVO.vo, isUGC, totalScenes, categoryData, viralContext, sceneVO.imperfections);
+            shots.push({
+                number: i + 1,
+                ...shot,
+                headerColor: SHOT_COLORS[i] || 'yellow',
+                sceneVO: sceneVO
+            });
             if (i < totalScenes - 1) await delay(1500);
         }
 
+        // ===== STEP 4: Validation =====
+        statusEl.textContent = '✅ Validating output...';
+        progEl.style.width = '95%';
+
         // Category validation
-        const validation = validateCategoryOutput(shots, info.category);
-        if (!validation.valid) {
-            console.warn('Category validation warning:', validation.message);
-            statusEl.textContent = `⚠️ Validasi: beberapa elemen mungkin kurang (${validation.missing.join(', ')}). Melanjutkan...`;
-            await delay(2000);
+        const categoryValidation = validateCategoryOutput(shots, info.category);
+        if (!categoryValidation.valid) {
+            console.warn('Category validation warning:', categoryValidation.message);
+            statusEl.textContent = `⚠️ Kategori: elemen kurang (${categoryValidation.missing.join(', ')}). Melanjutkan...`;
+            await delay(1500);
         }
 
-        statusEl.textContent = 'Selesai!';
+        // Viral validation
+        const viralValidation = validateViralOutput(shots.map((s, i) => ({
+            vo: sceneVOs[i]?.vo || s.voSnippet,
+            description: s.description
+        })), viralContext);
+        if (!viralValidation.valid) {
+            console.warn('Viral validation warning:', viralValidation.message);
+            statusEl.textContent = `⚠️ Viral: ${viralValidation.errors[0]}. Melanjutkan...`;
+            await delay(1500);
+        }
+
+        // VO sync validation
+        const voSyncValidation = validateVOSync(sceneVOs);
+        if (!voSyncValidation.valid) {
+            console.warn('VO sync warning:', voSyncValidation.message);
+        }
+
+        statusEl.textContent = '🎉 Selesai! Viral Content Engine aktif.';
         progEl.style.width = '100%';
 
-        const structured = buildStructuredOutput(vo, shots, info);
+        const structured = buildStructuredOutput(vo, shots, info, viralContext, sceneVOs);
 
         state.generatedData = {
             vo,
             shots,
+            sceneVOs,
             info,
             contentStyle: isUGC ? 'UGC' : 'IKLAN',
             structured,
             engineConfig: { ...engineConfig },
-            categoryValidation: validation
+            categoryValidation,
+            viralValidation,
+            voSyncValidation,
+            viralContext: {
+                hook: viralContext.hook,
+                emotionalTrigger: viralContext.emotionalTrigger,
+                structure: viralContext.structure
+            }
         };
 
         displayMasterPlan();
@@ -302,12 +429,13 @@ async function startAI() {
 // ==================== DISPLAY ====================
 function displayMasterPlan() {
     if (!state.generatedData) return;
-    const { vo, shots } = state.generatedData;
+    const { vo, shots, sceneVOs, viralContext: vc } = state.generatedData;
     document.getElementById('fullVO').textContent = vo;
 
     const container = document.getElementById('shotCards');
     container.innerHTML = '';
 
+    // Engine info badge
     const engineInfo = document.createElement('div');
     engineInfo.className = 'engine-info-badge';
     engineInfo.innerHTML = `
@@ -320,6 +448,20 @@ function displayMasterPlan() {
     `;
     container.appendChild(engineInfo);
 
+    // Viral Engine info badge
+    if (vc) {
+        const viralInfo = document.createElement('div');
+        viralInfo.className = 'viral-engine-badge';
+        viralInfo.style.cssText = 'background:linear-gradient(135deg,#1a0a2e,#2d1b4e);border:1px solid #7c3aed;border-radius:10px;padding:12px 16px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;';
+        viralInfo.innerHTML = `
+            <span style="background:#7c3aed;color:#fff;padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;">🔥 VIRAL ENGINE</span>
+            <span style="background:#1e1e2e;color:#c4b5fd;padding:3px 10px;border-radius:6px;font-size:0.75rem;">🎣 Hook: "${vc.hook?.slice(0, 40) || '...'}${vc.hook?.length > 40 ? '...' : ''}"</span>
+            <span style="background:#1e1e2e;color:#fbbf24;padding:3px 10px;border-radius:6px;font-size:0.75rem;">💛 ${vc.emotionalTrigger?.emotion || 'N/A'}</span>
+            <span style="background:#1e1e2e;color:#34d399;padding:3px 10px;border-radius:6px;font-size:0.75rem;">📐 ${vc.structure?.map(s => s.phase).join(' → ') || 'N/A'}</span>
+        `;
+        container.appendChild(viralInfo);
+    }
+
     // Show validation status
     if (state.generatedData.categoryValidation && !state.generatedData.categoryValidation.valid) {
         const warning = document.createElement('div');
@@ -329,11 +471,35 @@ function displayMasterPlan() {
         container.appendChild(warning);
     }
 
+    // Viral validation warning
+    if (state.generatedData.viralValidation && !state.generatedData.viralValidation.valid) {
+        const warning = document.createElement('div');
+        warning.style.cssText = 'background:#2a0f0f;border:1px solid #ef4444;color:#fca5a5;padding:8px 12px;border-radius:8px;margin-bottom:12px;font-size:0.8rem;';
+        warning.innerHTML = `⚠️ Viral validation: <strong>${state.generatedData.viralValidation.errors.join('; ')}</strong>`;
+        container.appendChild(warning);
+    }
+
     shots.forEach((shot, i) => {
         const color = shot.headerColor || SHOT_COLORS[i] || 'yellow';
         const charBadge = state.uploadedFiles.char ? '<span class="character-badge">👤 REF</span>' : '';
         const prodBadge = state.uploadedFiles.prod.some(p => p) ? '<span class="shot-card-asset-ref">📦 PRODUCT REF</span>' : '';
         const arcBadge = shot.arcPhase ? `<span class="arc-badge">${shot.arcPhase.toUpperCase()}</span>` : '';
+
+        // Per-scene VO data
+        const sceneVO = shot.sceneVO || (sceneVOs && sceneVOs[i]) || null;
+        const voDuration = sceneVO ? sceneVO.duration : '';
+        const voEmotion = sceneVO ? sceneVO.emotion : '';
+        const voImperfections = sceneVO && sceneVO.imperfections && sceneVO.imperfections.length > 0
+            ? sceneVO.imperfections : (shot.imperfections || []);
+
+        const voBadges = `
+            ${voDuration ? `<span style="background:#1e1e2e;color:#60a5fa;padding:2px 6px;border-radius:4px;font-size:0.65rem;margin-left:4px;">⏱ ${voDuration}</span>` : ''}
+            ${voEmotion ? `<span style="background:#1e1e2e;color:#fbbf24;padding:2px 6px;border-radius:4px;font-size:0.65rem;margin-left:4px;">💛 ${voEmotion}</span>` : ''}
+        `;
+
+        const imperfectionHtml = voImperfections.length > 0
+            ? `<div style="margin-top:6px;padding:4px 8px;background:#1a1a2e;border-radius:4px;font-size:0.7rem;color:#a78bfa;">🎭 ${voImperfections.join(' | ')}</div>`
+            : '';
 
         const card = document.createElement('div');
         card.className = 'shot-card';
@@ -347,8 +513,9 @@ function displayMasterPlan() {
             </div>
             <div class="shot-card-body">
                 <div class="shot-vo-section">
-                    <div class="shot-vo-label">🎙️ VOICEOVER</div>
-                    <div class="shot-vo-text">${shot.voSnippet || ''}</div>
+                    <div class="shot-vo-label">🎙️ SCENE VO ${voBadges}</div>
+                    <div class="shot-vo-text">${sceneVO ? sceneVO.vo : (shot.voSnippet || '')}</div>
+                    ${imperfectionHtml}
                 </div>
                 <div class="shot-prompt-section">
                     <div class="shot-prompt-label">📸 IMAGE PROMPT</div>
@@ -404,10 +571,27 @@ window.__copyToClipboard = copyToClipboard;
 
 function copyAll(btn) {
     if (!state.generatedData) { alert('Belum ada data!'); return; }
-    let text = '=== NASKAH VOICEOVER ===\n' + state.generatedData.vo + '\n\n';
-    state.generatedData.shots.forEach(shot => {
+    const { sceneVOs, viralContext: vc } = state.generatedData;
+    let text = '';
+
+    // Viral engine header
+    if (vc) {
+        text += `=== VIRAL ENGINE ===\n`;
+        text += `Hook: ${vc.hook}\n`;
+        text += `Emotion: ${vc.emotionalTrigger?.emotion}\n`;
+        text += `Structure: ${vc.structure?.map(s => s.phase).join(' → ')}\n\n`;
+    }
+
+    text += '=== NASKAH VOICEOVER (PER SCENE) ===\n' + state.generatedData.vo + '\n\n';
+    state.generatedData.shots.forEach((shot, i) => {
+        const sv = sceneVOs && sceneVOs[i];
         text += `=== SCENE ${shot.number}: ${shot.title} ===\n`;
-        text += `VO: ${shot.voSnippet}\n`;
+        text += `VO: ${sv ? sv.vo : shot.voSnippet}\n`;
+        text += `Duration: ${sv ? sv.duration : 'N/A'}\n`;
+        text += `Emotion: ${sv ? sv.emotion : 'N/A'}\n`;
+        if (sv && sv.imperfections && sv.imperfections.length > 0) {
+            text += `Imperfections: ${sv.imperfections.join(', ')}\n`;
+        }
         text += `IMAGE PROMPT: ${shot.imagePrompt}\n`;
         text += `VIDEO PROMPT: ${shot.videoPrompt}\n\n`;
     });
@@ -425,7 +609,9 @@ function copyVO(btn) {
 function downloadAllAssets() {
     if (!state.generatedData) { alert('Belum ada data untuk di-download!'); return; }
     const cfg = state.generatedData.engineConfig || engineConfig;
-    let content = `HAMBS PRODUCTION — MASTER PROMPT PACK (CATEGORY-AWARE ENGINE v3)\n`;
+    const vc = state.generatedData.viralContext;
+    const sceneVOs = state.generatedData.sceneVOs;
+    let content = `HAMBS PRODUCTION — MASTER PROMPT PACK (VIRAL CONTENT ENGINE v1)\n`;
     content += `Mode: ${state.generatedData.contentStyle} (${cfg.mode === 'ugc' ? 'Realism' : 'Cinematic'})\n`;
     content += `Platform: ${cfg.platform === 'seedance' ? 'Seedance 2.0' : 'Veo 3.1'}\n`;
     content += `Persona: ${PERSONAS[cfg.persona]?.label || cfg.persona}\n`;
@@ -434,14 +620,26 @@ function downloadAllAssets() {
     content += `Category: ${state.generatedData.info.category}\n`;
     content += `Produk: ${state.generatedData.info.name}\n`;
     content += `Generated: ${new Date().toLocaleString('id-ID')}\n`;
+    if (vc) {
+        content += `\n--- VIRAL ENGINE ---\n`;
+        content += `Hook: ${vc.hook}\n`;
+        content += `Emotion: ${vc.emotionalTrigger?.emotion} — ${vc.emotionalTrigger?.description || ''}\n`;
+        content += `Structure: ${vc.structure?.map(s => s.phase).join(' → ')}\n`;
+    }
     content += `${'='.repeat(60)}\n\n`;
-    content += `NASKAH VOICEOVER:\n${state.generatedData.vo}\n\n`;
+    content += `NASKAH VOICEOVER (PER SCENE):\n${state.generatedData.vo}\n\n`;
     content += `${'='.repeat(60)}\n\n`;
-    state.generatedData.shots.forEach(shot => {
+    state.generatedData.shots.forEach((shot, idx) => {
+        const sv = sceneVOs && sceneVOs[idx];
         content += `SCENE ${shot.number}: ${shot.title}\n`;
         content += `-`.repeat(40) + `\n`;
-        content += `VOICEOVER:\n${shot.voSnippet}\n\n`;
-        content += `IMAGE PROMPT:\n${shot.imagePrompt}\n\n`;
+        content += `VOICEOVER: ${sv ? sv.vo : shot.voSnippet}\n`;
+        content += `DURATION: ${sv ? sv.duration : 'N/A'}\n`;
+        content += `EMOTION: ${sv ? sv.emotion : 'N/A'}\n`;
+        if (sv && sv.imperfections && sv.imperfections.length > 0) {
+            content += `IMPERFECTIONS: ${sv.imperfections.join(', ')}\n`;
+        }
+        content += `\nIMAGE PROMPT:\n${shot.imagePrompt}\n\n`;
         content += `VIDEO PROMPT:\n${shot.videoPrompt}\n\n`;
         content += `${'='.repeat(60)}\n\n`;
     });
