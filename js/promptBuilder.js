@@ -23,8 +23,8 @@ function getProductName() {
 }
 
 function getGenderDesc() {
-    const persona = (state.charPersona || '').toLowerCase();
-    const isPria = persona.includes('pria') || persona.includes('male') || persona.includes('cowok') || persona.includes('man');
+    const persona = state.charPersona || '';
+    const isPria = /\b(pria|male|cowok|man|laki)\b/i.test(persona);
     return isPria
         ? { subj: 'A young Indonesian man', pronoun: 'he', possessive: 'his' }
         : { subj: 'A young Indonesian woman', pronoun: 'she', possessive: 'her' };

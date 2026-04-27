@@ -124,8 +124,8 @@ function validateOutput(scenes, sceneVOs) {
 
     // Check if first scene has a hook goal
     if (scenes.length > 0) {
-        const firstGoal = (scenes[0].goal || '').toLowerCase();
-        if (!firstGoal.includes('hook') && !firstGoal.includes('attention') && !firstGoal.includes('opening')) {
+        const firstPhase = (scenes[0].arcPhase || '').toLowerCase();
+        if (!firstPhase.includes('hook') && !firstPhase.includes('intro') && !firstPhase.includes('opening')) {
             errors.push('First scene should have a hook/attention goal.');
         }
     }
@@ -194,7 +194,7 @@ function renderCharUpload() {
 function getGenderDesc() {
     const style = state.charStyle || 'casual';
     const persona = state.charPersona || '';
-    const isPria = persona.toLowerCase().includes('pria') || persona.toLowerCase().includes('male') || persona.toLowerCase().includes('cowok');
+    const isPria = /\b(pria|male|cowok|man|laki)\b/i.test(persona);
     return isPria
         ? { subj: 'A young Indonesian man', pronoun: 'he', possessive: 'his' }
         : { subj: 'A young Indonesian woman', pronoun: 'she', possessive: 'her' };
@@ -716,7 +716,7 @@ function copyAllScenes() {
         text += `VIDEO PROMPT:\n${shot.videoPrompt || ''}\n\n`;
         text += `VOICE OVER:\n${voText}\n\n`;
         text += `TTS STYLE:\n- tone: ${voEmotion || 'casual'}\n- speed: ${i === 0 || i === totalScenes - 1 ? '1.1x' : '1.0x'}\n- emotion: ${voEmotion || 'neutral'}\n\n`;
-        text += `EDITOR NOTE:\n- ${getTimingNote(i, totalScenes, sceneDuration)}\n- ${getCameraNote(phase, state.mode)}\n- ${getCutNote(i, totalScenes)}\n\n`;
+        text += `EDITOR NOTE:\n- ${getTimingNote(i, totalScenes, sceneDuration)}\n- ${getCameraNote(phase, state.generatedData.mode)}\n- ${getCutNote(i, totalScenes)}\n\n`;
         text += `${'—'.repeat(40)}\n\n`;
     });
 
