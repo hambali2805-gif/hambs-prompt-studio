@@ -3,7 +3,7 @@
 
 import { engineConfig, updateConfig, TARGET_AD_SHOTS, TARGET_UGC_SHOTS, SHOT_COLORS, API_KEY_STORAGE, PERSONAS, ENERGY_LEVELS } from './config.js';
 import { state, updateState } from './state.js';
-import { delay, cleanText, escapeForAttr } from './utils.js';
+import { delay, cleanText, escapeForAttr, compressImage } from './utils.js';
 import { callAI, saveApiKeyToStorage, testProviderConnection, getApiKey } from './api.js';
 import { buildImagePrompt, buildVideoPrompt, buildSeedanceAIPrompt, buildStructuredOutput } from './promptBuilder.js';
 import { buildUGCVoiceoverPrompt, buildUGCScenePrompt } from './engines/ugcEngine.js';
@@ -79,6 +79,10 @@ function renderProducts() {
 
 function escapeAttr(s) {
     return String(s || '').replace(/"/g, '&quot;');
+}
+
+function escapeHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function addProduct() {
@@ -161,8 +165,9 @@ function setupCharUpload() {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = (ev) => {
-                state.charImage = { preview: ev.target.result };
+            reader.onload = async (ev) => {
+                const compressed = await compressImage(ev.target.result);
+                state.charImage = { preview: compressed };
                 renderCharUpload();
                 saveSession();
             };
@@ -437,7 +442,7 @@ async function startAI() {
             sceneVOs,
             info,
             comparison: comparison ? comparison.name : null,
-            products: [...state.products],
+            products: state.products.map(p => ({ ...p })),
             mode: state.mode,
             structured,
             engineConfig: { ...engineConfig },
@@ -530,7 +535,7 @@ function displayResults() {
                         <span class="scene-copyable-label video">VIDEO PROMPT</span>
                         <button class="btn-copy" data-copy="video-${i}">Copy</button>
                     </div>
-                    <div class="scene-copyable-text" id="video-${i}">${shot.videoPrompt || ''}</div>
+                    <div class="scene-copyable-text" id="video-${i}">${escapeHtml(shot.videoPrompt)}</div>
                 </div>
 
                 <div class="scene-copyable">
@@ -538,7 +543,7 @@ function displayResults() {
                         <span class="scene-copyable-label vo">VOICE OVER</span>
                         <button class="btn-copy" data-copy="vo-${i}">Copy</button>
                     </div>
-                    <div class="scene-copyable-text" id="vo-${i}">${voText}</div>
+                    <div class="scene-copyable-text" id="vo-${i}">${escapeHtml(voText)}</div>
                 </div>
 
                 <div class="scene-copyable">
@@ -589,7 +594,7 @@ function renderSceneRow(icon, label, content) {
         <div class="scene-row">
             <span class="scene-row-icon">${icons[icon] || ''}</span>
             <span class="scene-row-label">${label}:</span>
-            <span class="scene-row-content">${content || '-'}</span>
+            <span class="scene-row-content">${escapeHtml(content) || '-'}</span>
         </div>
     `;
 }
