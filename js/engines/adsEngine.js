@@ -131,7 +131,7 @@ ${variation.directive}
 
 Produk: ${info.name} (${info.category})
 Naskah narator scene ini: "${voSnippet}"
-Gaya: cinematic, professional, premium commercial.
+Gaya: ${state.selectedStyle}, cinematic, professional.
 Karakter: ${gender.subj}, ${style.outfit}
 ${categoryDirective}
 
@@ -152,9 +152,8 @@ Output HANYA deskripsi visual, tanpa judul atau label.`;
 }
 
 function getGenderDesc() {
-    const persona = state.charPersona || '';
-    const isPria = /\b(pria|male|cowok|man|laki)\b/i.test(persona);
-    return isPria
+    const g = document.getElementById('charGender')?.value || 'wanita';
+    return g === 'pria'
         ? { subj: 'A young Indonesian man', pronoun: 'he', possessive: 'his' }
         : { subj: 'A young Indonesian woman', pronoun: 'she', possessive: 'her' };
 }
