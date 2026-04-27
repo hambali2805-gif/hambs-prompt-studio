@@ -1,15 +1,15 @@
 // ==================== ADS ENGINE (CINEMATIC MODE) ====================
-// Cinematic lighting and framing. Product beauty focus.
-// Smooth camera motion (dolly, macro, slow motion).
-// Clean and polished scenes — premium commercial ads.
+// Category-aware cinematic generation.
+// Environments, actions, and sensory details are driven by CATEGORY_RULES.
+// Smooth camera motion, cinematic lighting, polished premium commercial.
 
 import { engineConfig, PERSONAS, ENERGY_LEVELS } from '../config.js';
 import { state } from '../state.js';
 import { getSceneArc } from '../core/storyArc.js';
 import { buildCTADirective } from '../core/ctaBuilder.js';
 import { getSceneVariation } from '../core/sceneVariation.js';
+import { getCategoryData, pickCategoryEnvironment, pickCategoryAction, pickCategorySensory, getCategoryNegativeContext } from '../categoryRules.js';
 
-// Ads cinematic lighting setups
 const CINEMATIC_LIGHTING = [
     'three-point studio setup: key (softbox 45deg), fill (bounce), rim (backlight)',
     'volumetric fog with directional beam, moody atmosphere',
@@ -19,7 +19,6 @@ const CINEMATIC_LIGHTING = [
     'neon-practical hybrid, modern commercial aesthetic'
 ];
 
-// Ads camera movements
 const CINEMATIC_MOVEMENTS = [
     'slow dolly-in with shallow DOF transition',
     'smooth orbital tracking, 180-degree arc',
@@ -37,14 +36,18 @@ function pickRandom(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
 }
 
-export function getAdsStyleContext() {
+export function getAdsStyleContext(categoryData) {
     const energy = ENERGY_LEVELS[engineConfig.energy] || ENERGY_LEVELS.medium;
+
+    const environment = categoryData
+        ? pickCategoryEnvironment(categoryData)
+        : 'perfectly curated studio or premium location';
 
     return {
         camera: 'stable cinematic movement, slider, crane, tripod-locked. NO handheld.',
         lighting: pickRandom(CINEMATIC_LIGHTING),
         vibe: `high production value, premium, aspirational, ${energy.pacing}`,
-        background: 'perfectly curated studio or premium location',
+        background: environment,
         outfit: 'professional styling, polished look, wardrobe department quality',
         movement: pickRandom(CINEMATIC_MOVEMENTS),
         energy: energy.pacing,
@@ -52,15 +55,19 @@ export function getAdsStyleContext() {
     };
 }
 
-export function buildAdsVoiceoverPrompt(info) {
+export function buildAdsVoiceoverPrompt(info, categoryData) {
     const persona = PERSONAS[engineConfig.persona] || PERSONAS.seller;
     const energy = ENERGY_LEVELS[engineConfig.energy] || ENERGY_LEVELS.medium;
     const ctaDirective = buildCTADirective(state.selectedLang);
     const langNote = state.selectedLang === 'EN' ? 'Write entirely in English.' : 'Tulis dalam Bahasa Indonesia.';
 
-    const isBeverage = info.name.toLowerCase().match(/teh|tea|minum|drink|jus|juice|kopi|coffee|susu|milk/);
-    const productTerms = isBeverage
-        ? 'PENTING: Produk ini adalah minuman. Gunakan terminologi yang tepat untuk botol/minuman.'
+    const categoryContext = categoryData
+        ? `\nCATEGORY CONTEXT (${info.category}):
+- Voice style: ${categoryData.voiceStyle}
+- Product interaction: ${categoryData.productInteraction}
+- Sensory focus: ${categoryData.sensory.join(', ')}
+- MUST include these elements in the narration: ${categoryData.requiredElements.join(', ')}
+- DO NOT reference: ${getCategoryNegativeContext(categoryData)}`
         : '';
 
     return `Kamu adalah copywriter iklan profesional dan narrator director.
@@ -71,7 +78,7 @@ Buat NASKAH VOICEOVER NARATOR untuk video iklan cinematic:
 - Produk: ${info.name}
 - Kategori: ${info.category}
 - Deskripsi: ${info.desc || 'tidak ada'}
-${productTerms}
+${categoryContext}
 ${langNote}
 
 STORY ARC CINEMATIC (10 scene WAJIB):
@@ -93,16 +100,25 @@ Langsung tulis naskahnya tanpa judul/header. Pisahkan tiap scene dengan baris ba
 Scene terakhir HARUS mengandung: urgency + emotional trigger + clear action.`;
 }
 
-export function buildAdsScenePrompt(info, sceneNum, voSnippet, totalScenes) {
+export function buildAdsScenePrompt(info, sceneNum, voSnippet, totalScenes, categoryData) {
     const gender = getGenderDesc();
-    const style = getAdsStyleContext();
+    const style = getAdsStyleContext(categoryData);
     const arc = getSceneArc('ads', sceneNum - 1);
     const variation = getSceneVariation(sceneNum - 1, false);
 
-    const isBeverage = info.name.toLowerCase().match(/teh|tea|minum|drink|jus|juice|kopi|coffee|susu|milk/);
-    const productInteraction = isBeverage
-        ? 'elegant pour, product hero shot with condensation, premium presentation'
-        : `premium interaction with ${info.name}, cinematic product showcase`;
+    const categoryAction = categoryData ? pickCategoryAction(categoryData) : `premium interaction with ${info.name}`;
+    const categorySensory = categoryData ? pickCategorySensory(categoryData) : '';
+    const negativeContext = categoryData ? getCategoryNegativeContext(categoryData) : '';
+
+    const categoryDirective = categoryData
+        ? `\nCATEGORY RULES (${info.category}):
+- Environment MUST be: ${pickCategoryEnvironment(categoryData)}
+- Action focus: ${categoryAction}
+- Sensory detail: ${categorySensory}
+- Product interaction: ${categoryData.productInteraction}
+- FORBIDDEN environments: ${negativeContext}
+- This scene must match a premium cinematic version of real-life ${info.category.toLowerCase()} usage.`
+        : '';
 
     return `Kamu adalah AI Director untuk iklan komersial cinematic. Mode: PREMIUM ADS.
 Buat DESKRIPSI VISUAL untuk Scene ${sceneNum}/${totalScenes}.
@@ -113,10 +129,11 @@ DIRECTION: ${arc.direction}
 
 ${variation.directive}
 
-Produk: ${info.name} (${info.category})${isBeverage ? ' — PET bottle, cold with condensation droplets, vibrant amber tea color' : ''}
+Produk: ${info.name} (${info.category})
 Naskah narator scene ini: "${voSnippet}"
 Gaya: ${state.selectedStyle}, cinematic, professional.
 Karakter: ${gender.subj}, ${style.outfit}
+${categoryDirective}
 
 CINEMATIC ADS RULES:
 - Camera: ${style.camera}. Movement: ${style.movement}
@@ -124,7 +141,7 @@ CINEMATIC ADS RULES:
 - Production value: HIGH. This is a premium commercial.
 - Product beauty: Product must look aspirational, perfect, desirable.
 - Clean and polished: No imperfections, no mess, no casual elements.
-- Interaksi produk: ${productInteraction}
+- Interaksi produk: ${categoryData ? categoryData.productInteraction : `premium interaction with ${info.name}`}
 
 ${arc.phase === 'hook' ? 'PENTING Opening: Dramatic, mysterious, beautiful. Set the cinematic tone.' : ''}
 ${arc.phase === 'cta' ? 'PENTING CTA: Final hero shot + brand lockup. Clean, powerful, memorable.' : ''}

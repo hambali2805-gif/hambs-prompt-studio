@@ -87,6 +87,6 @@ export function getVeoCameraMove(sceneNum, isUGC) {
 }
 
 export function buildVeoVideoPrompt(params) {
-    const { charRef, sceneDesc, beverageDetail, cam, lighting, style, productName } = params;
-    return `Cinematic video scene: ${charRef}${sceneDesc}${beverageDetail}. Camera: ${cam}. Lighting: ${lighting}. Cinematic realism with advanced lighting physics. Product: ${productName}. Style: ${style}. 4K, 24fps, shallow depth of field.`;
+    const { charRef, sceneDesc, sensoryDetail, cam, lighting, style, productName } = params;
+    return `Cinematic video scene: ${charRef}${sceneDesc}${sensoryDetail}. Camera: ${cam}. Lighting: ${lighting}. Cinematic realism, natural lighting dynamics. Product: ${productName}. Style: ${style}. 4K, 24fps, shallow depth of field.`;
 }
