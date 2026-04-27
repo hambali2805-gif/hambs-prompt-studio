@@ -135,7 +135,8 @@ async function generateGlobalVO(info, isUGC, categoryData) {
 // Per-scene VO generator (Viral Engine + VO Engine pipeline)
 async function generatePerSceneVO(info, isUGC, categoryData, viralContext, totalScenes) {
     const structure = viralContext.structure;
-    const voTexts = [];
+    const rawVOTexts = [];
+    const fallbackVOObjects = {};
 
     for (let i = 0; i < totalScenes; i++) {
         const phase = structure[i] || structure[structure.length - 1];
@@ -149,20 +150,28 @@ async function generatePerSceneVO(info, isUGC, categoryData, viralContext, total
                 isUGC,
                 categoryData,
                 viralContext,
-                previousVOs: voTexts
+                previousVOs: rawVOTexts
             });
             const rawVO = cleanText(await callAI(prompt));
-            voTexts.push(rawVO);
+            rawVOTexts.push(rawVO);
         } catch (e) {
             console.error(`Scene ${i + 1} VO fallback:`, e);
-            // Use fallback for this scene
+            // buildFallbackPerSceneVO already applies humanizeVO + enforceCTA,
+            // so store the complete object to avoid double-processing.
             const fallbackVOs = buildFallbackPerSceneVO(info, [phase], viralContext, isUGC, categoryData);
-            voTexts.push(fallbackVOs[0]?.vo || '');
+            fallbackVOObjects[i] = fallbackVOs[0];
+            rawVOTexts.push(null);
         }
     }
 
-    // Build per-scene VO objects with humanization
-    return buildPerSceneVO(voTexts, structure, viralContext, state.selectedLang);
+    // Build per-scene VO objects with humanization (only for AI-generated texts)
+    const processed = buildPerSceneVO(
+        rawVOTexts.map(t => t || ''),
+        structure, viralContext, state.selectedLang
+    );
+
+    // Merge: use pre-processed fallback objects where AI failed
+    return processed.map((vo, i) => fallbackVOObjects[i] || vo);
 }
 
 function buildFallbackVO(info, isUGC, categoryData) {
