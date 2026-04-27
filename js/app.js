@@ -140,7 +140,7 @@ Pokoknya recommended banget! Link di bio, buruan sebelum kehabisan!`;
 Satu nama terus bersinar — ${info.name}.
 ${sensory} — setiap detail dirancang untuk pengalaman tak tertandingi.
 Rasakan sendiri: ${actions}.
-Tone: ${voiceStyle}.
+Setiap detail dirancang dengan standar tertinggi.
 Dipercaya oleh ribuan pelanggan di seluruh Indonesia.
 Lihat bagaimana ${info.name} mengubah rutinitas Anda.
 Karena Anda layak mendapatkan yang terbaik.
@@ -267,7 +267,7 @@ async function startAI() {
         }
 
         // Category validation
-        const validation = validateCategoryOutput(shots, state.selectedCategory);
+        const validation = validateCategoryOutput(shots, info.category);
         if (!validation.valid) {
             console.warn('Category validation warning:', validation.message);
             statusEl.textContent = `⚠️ Validasi: beberapa elemen mungkin kurang (${validation.missing.join(', ')}). Melanjutkan...`;
