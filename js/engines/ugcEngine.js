@@ -108,7 +108,7 @@ export function buildUGCScenePrompt(info, sceneNum, voSnippet, totalScenes, cate
     const hasUserBackground = !!state.ugcBackground;
     const envDirective = hasUserBackground
         ? `- Adapt the user-selected background to feel natural for ${info.category.toLowerCase()} content`
-        : `- Environment MUST be: ${pickCategoryEnvironment(categoryData)}`;
+        : `- Environment MUST be: ${style.background}`;
 
     const categoryDirective = categoryData
         ? `\nCATEGORY RULES (${info.category}):
