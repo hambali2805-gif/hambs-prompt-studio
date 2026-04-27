@@ -37,12 +37,12 @@ function goToModeSelection() {
     saveSession();
 }
 
-function goToStep(s) {
-    if (s === 2 && !state.generatedData) {
+function goToStep(s, { force = false } = {}) {
+    if (!force && s === 2 && !state.generatedData) {
         alert('Silakan generate dulu!');
         return;
     }
-    if (s === 3 && !state.generatedData) {
+    if (!force && s === 3 && !state.generatedData) {
         alert('Tidak ada data Master Plan. Silakan generate dulu!');
         return;
     }
@@ -209,7 +209,7 @@ async function startAI() {
         platform: state.selectedVideoModel
     });
 
-    goToStep(2);
+    goToStep(2, { force: true });
     const statusEl = document.getElementById('loadingStatus');
     const progEl = document.getElementById('progressBar');
     const info = { name: state.productName, category: state.selectedCategory, desc: state.productDescription };
@@ -509,6 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('apiWarning').innerHTML = '&#10003; Tersimpan';
     }
     if (restoreSession()) {
+        updateUI();
         if (state.currentStep === 3 && state.generatedData) displayMasterPlan();
         if (!confirm('Sesi sebelumnya ditemukan. Lanjutkan?')) clearSession();
     }

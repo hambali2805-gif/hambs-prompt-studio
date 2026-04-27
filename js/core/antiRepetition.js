@@ -21,9 +21,17 @@ export function isPhraseOverused(phrase) {
 
 export function deduplicatePrompt(prompt) {
     const keywords = extractKeyPhrases(prompt);
-    const filtered = keywords.filter(kw => !isPhraseOverused(kw));
-    filtered.forEach(kw => trackPhrase(kw));
-    return prompt;
+    let result = prompt;
+    for (const kw of keywords) {
+        if (isPhraseOverused(kw)) {
+            const alt = getAlternativePhrase(kw);
+            if (alt !== kw) {
+                result = result.replace(kw, alt);
+            }
+        }
+        trackPhrase(kw);
+    }
+    return result;
 }
 
 function extractKeyPhrases(text) {
