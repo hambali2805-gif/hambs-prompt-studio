@@ -385,6 +385,7 @@ async function startAI() {
     customNegativePrompt = document.getElementById('customNegativePrompt')?.value || '';
     if (!apiKey) { alert('Masukkan API Key Google AI Studio!'); return; }
     const isUGC = contentStyle === 'UGC';
+    if (isUGC) selectedStyle = 'LIFESTYLE';
     const totalScenes = isUGC ? 4 : TARGET_AD_SHOTS;
     
     goToStep(2);
@@ -420,6 +421,22 @@ async function startAI() {
 // ==================== HELPER FUNCTIONS ====================
 function splitVO(vo, count) {
     if (!vo) return Array(count).fill('');
+
+    const sceneLabelRegex = /\(scene\s+\d+\s*-\s*[^)]+\)/gi;
+    const hasSceneLabels = sceneLabelRegex.test(vo);
+
+    if (hasSceneLabels) {
+        const parts = vo.split(/\(scene\s+\d+\s*-\s*[^)]+\)/i);
+        const result = [];
+        for (let i = 1; i < parts.length; i++) {
+            const text = parts[i].trim();
+            if (text) result.push(text);
+        }
+        while (result.length < count) result.push(result[result.length - 1] || '');
+        if (result.length > count) return result.slice(0, count);
+        return result;
+    }
+
     const lines = vo.split('\n').filter(l => l.trim().length > 0);
     if (lines.length <= count) {
         const result = [...lines];
@@ -477,8 +494,12 @@ function getStyleContext(isUGC) {
 
 function buildImagePrompt(sceneDesc, voSnippet, isUGC) {
     const gender = getGenderDesc();
-    const charRef = hasCharacterReference() ? `[REF:CHARACTER] ${gender.subj} (reference character), ` : `${gender.subj}, `;
-    const prodRef = uploadedFiles.prod.some(p => p) ? '[REF:PRODUCT] ' : '';
+    const charRef = hasCharacterReference()
+        ? `[REF:CHARACTER] ${gender.subj} (reference character), `
+        : `${gender.subj}, casual outfit, `;
+    const prodRef = uploadedFiles.prod.some(p => p)
+        ? '[REF:PRODUCT] '
+        : `${productName} (${selectedCategory}), `;
     const lens = getLensPrompt();
     const neg = getNegativePrompt();
     const style = getStyleContext(isUGC);
@@ -493,7 +514,9 @@ function buildImagePrompt(sceneDesc, voSnippet, isUGC) {
 
 function buildVideoPrompt(sceneDesc, voSnippet, sceneNum, totalScenes, isUGC) {
     const gender = getGenderDesc();
-    const charRef = hasCharacterReference() ? `${gender.subj} (consistent character from reference), ` : `${gender.subj}, `;
+    const charRef = hasCharacterReference()
+        ? `${gender.subj} (consistent character from reference), `
+        : `${gender.subj}, casual outfit, `;
     const style = getStyleContext(isUGC);
     const isBeverage = productName.toLowerCase().match(/teh|tea|minum|drink|jus|juice|kopi|coffee|susu|milk/);
     const beverageDetail = isBeverage ? ', cold PET bottle with visible condensation, refreshing liquid pour' : '';
@@ -564,9 +587,35 @@ Output HANYA deskripsi visual, tanpa judul atau label.`;
     } catch (e) {
         console.error(`Scene ${sceneNum} fallback:`, e);
         const bevDetail = isBeverage ? 'chilled PET bottle with condensation droplets' : info.name;
-        const fallbacks = isUGC
-            ? [`${gender.subj} looks at camera with excited expression, holding ${bevDetail} close, natural sunlight, handheld framing`, `Close-up of hands unscrewing bottle cap of ${bevDetail}, face softly blurred in bokeh, natural ambient light`, `${gender.subj} takes a refreshing sip of ${info.name}, genuine smile, medium close-up, casual setting`, `${gender.subj} holds up ${bevDetail} to camera, direct eye contact, energetic thumbs up, natural background`]
-            : [`Cinematic wide shot, golden light filtering through, ${bevDetail} silhouetted, mysterious atmosphere`, `Slow reveal of ${bevDetail}, dramatic three-point rim lighting, dark studio background`, `${gender.subj} discovers ${bevDetail}, close-up reaction, professional styling, soft focus background`, `Product detail macro shot of ${bevDetail}, highlighting condensation texture and label quality`, `${gender.subj} enjoying ${info.name} naturally, curated lifestyle setting, warm studio tones`, `Testimonial-style framing, authentic expression, studio rim light`, `Demonstration shot, liquid pour from ${bevDetail}, clean studio composition`, `Emotional close-up, ${gender.subj} refreshed after sip, cinematic bokeh, three-point lighting`, `Dynamic crane shot, sense of freshness, bold vibrant colors`, `Final hero shot of ${bevDetail}, brand positioning, premium aspirational feel`];
+        let fallbacks;
+        if (isUGC) {
+            fallbacks = isBeverage
+                ? [
+                    `${gender.subj} looks at camera with excited expression, holding ${bevDetail} close, natural sunlight, handheld framing`,
+                    `Close-up of hands unscrewing bottle cap of ${bevDetail}, face softly blurred in bokeh, natural ambient light`,
+                    `${gender.subj} takes a refreshing sip of ${info.name}, genuine smile, medium close-up, casual setting`,
+                    `${gender.subj} holds up ${bevDetail} to camera, direct eye contact, energetic thumbs up, natural background`
+                ]
+                : [
+                    `${gender.subj} opening the ${info.name} package with both hands, excited expression, natural sunlight, handheld framing`,
+                    `Close-up of hands mixing the ${info.name} with seasoning, steam rising, close-up shot, natural ambient light`,
+                    `${gender.subj} taking a big bite of ${info.name}, satisfied smile, medium close-up, casual setting`,
+                    `${gender.subj} holding up ${info.name} to camera, direct eye contact, thumbs up, natural background`
+                ];
+        } else {
+            fallbacks = [
+                `Cinematic wide shot, golden light filtering through, ${bevDetail} silhouetted, mysterious atmosphere`,
+                `Slow reveal of ${bevDetail}, dramatic three-point rim lighting, dark studio background`,
+                `${gender.subj} discovers ${bevDetail}, close-up reaction, professional styling, soft focus background`,
+                `Product detail macro shot of ${bevDetail}, highlighting texture and label quality`,
+                `${gender.subj} enjoying ${info.name} naturally, curated lifestyle setting, warm studio tones`,
+                `Testimonial-style framing, authentic expression, studio rim light`,
+                `Demonstration shot, ${isBeverage ? 'liquid pour from ' + bevDetail : info.name + ' presented elegantly'}, clean studio composition`,
+                `Emotional close-up, ${gender.subj} ${isBeverage ? 'refreshed after sip' : 'delighted after trying ' + info.name}, cinematic bokeh, three-point lighting`,
+                `Dynamic crane shot, sense of freshness, bold vibrant colors`,
+                `Final hero shot of ${bevDetail}, brand positioning, premium aspirational feel`
+            ];
+        }
         sceneDescription = fallbacks[(sceneNum - 1) % fallbacks.length];
     }
 
