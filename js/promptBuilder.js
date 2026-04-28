@@ -59,7 +59,7 @@ export function buildImagePrompt(sceneDesc, voSnippet, isUGC, categoryData) {
         ? `Phone camera quality, realism: ${engineConfig.realism}/100. ${style.imperfections}`
         : 'Studio-grade photography, polished and flawless.';
 
-    const photoRealism = 'shot on 35mm lens, high-resolution photography, photorealistic skin texture, sharp product details, hyper-realistic';
+    const photoRealism = 'high-resolution photography, photorealistic skin texture, sharp product details, hyper-realistic';
     const styleKeywords = `${style.camera}, ${style.lighting}, ${style.vibe}`;
 
     const raw = `${charRef}${sceneDesc}. ${prodRef}Product: ${state.productName}${sensoryKw}. ${photoRealism}. ${lens}. ${styleKeywords}. ${realismNote}. --no ${neg}`;
