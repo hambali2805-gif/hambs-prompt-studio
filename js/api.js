@@ -116,7 +116,7 @@ export async function callAIWithSystem(systemPrompt, userPrompt) {
         body: JSON.stringify({
             systemInstruction: { parts: [{ text: systemPrompt }] },
             contents: [{ parts: [{ text: userPrompt }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+            generationConfig: { temperature: 0.85, topP: 0.95, maxOutputTokens: 4096 }
         })
     });
     if (!res.ok) {
