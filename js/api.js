@@ -56,22 +56,53 @@ export async function testProviderConnection() {
 export async function callAI(prompt) {
     const key = getApiKey();
     if (!key) throw new Error('API Key tidak ditemukan. Masukkan API Key Google AI Studio.');
+
     state.apiKey = key;
     localStorage.setItem(API_KEY_STORAGE, key);
-    const res = await fetch(getGeminiApiUrl(key), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
-        })
-    });
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error?.message || `HTTP ${res.status}`);
+
+    const basePayload = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+            temperature: 0.85,
+            topP: 0.95,
+            maxOutputTokens: 4096,
+            responseMimeType: 'application/json'
+        }
+    };
+
+    const fallbackPayload = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+            temperature: 0.85,
+            topP: 0.95,
+            maxOutputTokens: 4096
+        }
+    };
+
+    async function request(payload) {
+        const res = await fetch(getGeminiApiUrl(key), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error?.message || `HTTP ${res.status}`);
+        }
+
+        const d = await res.json();
+        const text = d?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) throw new Error('Gemini tidak mengembalikan teks.');
+        return text;
     }
-    const d = await res.json();
-    return d.candidates[0].content.parts[0].text;
+
+    try {
+        return await request(basePayload);
+    } catch (e) {
+        console.warn('Gemini JSON-mode request failed, retrying standard request:', e);
+        return await request(fallbackPayload);
+    }
 }
 
 export async function callAIWithSystem(systemPrompt, userPrompt) {
