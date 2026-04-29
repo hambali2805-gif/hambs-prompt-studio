@@ -217,7 +217,7 @@ export function saveCurrentProject() {
 export function exportProject() {
     if (!state.generatedData) { alert('Generate dulu sebelum export!'); return; }
     const data = {
-        version: 'hambs_v29_mode_platform_split',
+        version: 'hambs_v5_clean_engine',
         name: state.currentProjectName || 'Untitled',
         contentStyle: state.contentStyle,
         productName: state.productName,
