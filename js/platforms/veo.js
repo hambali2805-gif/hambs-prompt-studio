@@ -87,6 +87,27 @@ export function getVeoCameraMove(sceneNum, isUGC) {
 }
 
 export function buildVeoVideoPrompt(params) {
-    const { charRef, sceneDesc, sensoryDetail, cam, lighting, style, productName } = params;
-    return `Cinematic video scene: ${charRef}${sceneDesc}${sensoryDetail}. Camera: ${cam}. Lighting: ${lighting}. Cinematic realism, natural lighting dynamics. Product: ${productName}. Style: ${style}. 4K, 24fps, shallow depth of field.`;
+    const { charRef, sceneDesc, sensoryDetail, cam, lighting, style, productName, sceneBlueprint, voSnippet } = params;
+
+    const blueprintBlock = sceneBlueprint
+        ? `Story intent: ${sceneBlueprint.function}. Human moment: ${sceneBlueprint.message}. Visual focus: ${sceneBlueprint.visualFocus}. Required details: ${sceneBlueprint.mustInclude.join(', ')}.`
+        : '';
+
+    const voBlock = voSnippet
+        ? `Voiceover context: "${voSnippet}".`
+        : '';
+
+    const antiGeneric = 'Avoid generic stock-footage posing; show a believable human action with product interaction, micro-reaction, continuity, and one clear subject focus.';
+
+    return [
+        `Cinematic video scene: ${charRef}${sceneDesc}${sensoryDetail}.`,
+        blueprintBlock,
+        voBlock,
+        `Product: ${productName}.`,
+        `Camera: ${cam}. Lighting: ${lighting}.`,
+        antiGeneric,
+        `Style: ${style}.`,
+        'Photorealistic, natural motion, consistent character, realistic hands, 4K, 24fps, controlled shallow depth of field.'
+    ].filter(Boolean).join(' ');
 }
+

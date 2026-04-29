@@ -15,7 +15,8 @@ import { getSceneArc } from './core/storyArc.js';
 import { enforceCTA } from './core/ctaBuilder.js';
 import { getCategoryData, validateCategoryOutput, CATEGORY_RULES } from './categoryRules.js';
 import { applyViralEngine, validateViralOutput } from './engines/viralEngine.js';
-import { buildSceneVOPrompt, buildPerSceneVO, buildFallbackPerSceneVO, humanizeVO, validateVOSync } from './engines/voEngine.js';
+import { buildSceneVOPrompt, buildPerSceneVO, buildFallbackPerSceneVO, validateVOSync } from './engines/voEngine.js';
+import { buildContentBrain, getSceneBlueprint } from './engines/contentBrain.js';
 import {
     saveSession, restoreSession, clearSession, handleFile, removeUpload,
     updateConfirmBtn, loadProjectList, saveCurrentProject, exportProject,
@@ -133,7 +134,7 @@ async function generateGlobalVO(info, isUGC, categoryData) {
 }
 
 // Per-scene VO generator (Viral Engine + VO Engine pipeline)
-async function generatePerSceneVO(info, isUGC, categoryData, viralContext, totalScenes) {
+async function generatePerSceneVO(info, isUGC, categoryData, viralContext, totalScenes, contentBrain) {
     const structure = viralContext.structure;
     const rawVOTexts = [];
     const fallbackVOObjects = {};
@@ -150,7 +151,8 @@ async function generatePerSceneVO(info, isUGC, categoryData, viralContext, total
                 isUGC,
                 categoryData,
                 viralContext,
-                previousVOs: rawVOTexts.filter(v => v !== null)
+                previousVOs: rawVOTexts.filter(v => v !== null),
+                contentBrain
             });
             const rawVO = cleanText(await callAI(prompt));
             rawVOTexts.push(rawVO);
@@ -158,7 +160,7 @@ async function generatePerSceneVO(info, isUGC, categoryData, viralContext, total
             console.error(`Scene ${i + 1} VO fallback:`, e);
             // buildFallbackPerSceneVO already applies humanizeVO + enforceCTA,
             // so store the complete object to avoid double-processing.
-            const fallbackVOs = buildFallbackPerSceneVO(info, [phase], viralContext, isUGC, categoryData);
+            const fallbackVOs = buildFallbackPerSceneVO(info, [phase], viralContext, isUGC, categoryData, { ...contentBrain, sceneBlueprints: [getSceneBlueprint(contentBrain, i)] });
             // Fix scene label: buildFallbackPerSceneVO always produces "Scene 1" since it receives a single-element array.
             fallbackVOObjects[i] = { ...fallbackVOs[0], scene: `Scene ${i + 1}: ${phase.label}` };
             rawVOTexts.push(null);
@@ -168,7 +170,7 @@ async function generatePerSceneVO(info, isUGC, categoryData, viralContext, total
     // Build per-scene VO objects with humanization (only for AI-generated texts)
     const processed = buildPerSceneVO(
         rawVOTexts.map(t => t || ''),
-        structure, viralContext, state.selectedLang
+        structure, viralContext, state.selectedLang, contentBrain
     );
 
     // Merge: use pre-processed fallback objects where AI failed
@@ -199,13 +201,14 @@ Penawaran terbatas — jangan sampai kehabisan.
 ${info.name}. Pilihan cerdas untuk hidup yang lebih baik.`;
 }
 
-async function generateSceneVisuals(info, sceneNum, voSnippet, isUGC, totalScenes, categoryData, viralContext, sceneVOImperfections) {
+async function generateSceneVisuals(info, sceneNum, voSnippet, isUGC, totalScenes, categoryData, viralContext, sceneVOImperfections, contentBrain) {
     const mode = isUGC ? 'ugc' : 'ads';
     const structure = viralContext ? viralContext.structure : null;
     const phase = structure && structure[sceneNum - 1]
         ? structure[sceneNum - 1]
         : { phase: getSceneArc(mode, sceneNum - 1).phase, label: getSceneArc(mode, sceneNum - 1).label };
     const arc = getSceneArc(mode, sceneNum - 1);
+    const sceneBlueprint = getSceneBlueprint(contentBrain, sceneNum - 1);
 
     // Reuse imperfections from sceneVO if available (keeps display in sync with prompts)
     const imperfections = (sceneVOImperfections && sceneVOImperfections.length > 0)
@@ -220,17 +223,21 @@ async function generateSceneVisuals(info, sceneNum, voSnippet, isUGC, totalScene
         ? `\nEMOTIONAL TONE: ${viralContext.emotionalTrigger.emotion} — ${viralContext.emotionalTrigger.description}`
         : '';
 
+    const blueprintDirective = sceneBlueprint
+        ? `\nCONTENT BRAIN V2 SCENE BLUEPRINT:\n- Function: ${sceneBlueprint.function}\n- Message: ${sceneBlueprint.message}\n- Visual focus: ${sceneBlueprint.visualFocus}\n- Must include: ${sceneBlueprint.mustInclude.join(', ')}\n- Avoid: ${sceneBlueprint.avoid.join(', ')}\nMake the visual specific to this blueprint. Do not create generic premium stock footage.`
+        : '';
+
     let sceneDescription;
     try {
         const scenePrompt = isUGC
             ? buildUGCScenePrompt(info, sceneNum, voSnippet, totalScenes, categoryData)
             : buildAdsScenePrompt(info, sceneNum, voSnippet, totalScenes, categoryData);
         // Inject viral directives into the prompt
-        const enhancedPrompt = scenePrompt + emotionDirective + imperfectionDirective;
+        const enhancedPrompt = scenePrompt + emotionDirective + imperfectionDirective + blueprintDirective;
         sceneDescription = cleanText(await callAI(enhancedPrompt));
     } catch (e) {
         console.error(`Scene ${sceneNum} fallback:`, e);
-        sceneDescription = buildFallbackScene(info, sceneNum, isUGC, categoryData);
+        sceneDescription = buildFallbackScene(info, sceneNum, isUGC, categoryData, sceneBlueprint);
     }
 
     const imagePrompt = buildImagePrompt(sceneDescription, voSnippet, isUGC, categoryData);
@@ -238,10 +245,10 @@ async function generateSceneVisuals(info, sceneNum, voSnippet, isUGC, totalScene
 
     if (engineConfig.platform === 'seedance') {
         const gender = getGenderDesc();
-        const aiPrompt = await buildSeedanceAIPrompt(sceneDescription, info, gender, isUGC, categoryData);
-        videoPrompt = aiPrompt || buildVideoPrompt(sceneDescription, voSnippet, sceneNum - 1, totalScenes, isUGC, categoryData);
+        const aiPrompt = await buildSeedanceAIPrompt(sceneDescription, info, gender, isUGC, categoryData, sceneBlueprint, voSnippet);
+        videoPrompt = aiPrompt || buildVideoPrompt(sceneDescription, voSnippet, sceneNum - 1, totalScenes, isUGC, categoryData, sceneBlueprint);
     } else {
-        videoPrompt = buildVideoPrompt(sceneDescription, voSnippet, sceneNum - 1, totalScenes, isUGC, categoryData);
+        videoPrompt = buildVideoPrompt(sceneDescription, voSnippet, sceneNum - 1, totalScenes, isUGC, categoryData, sceneBlueprint);
     }
 
     return {
@@ -255,8 +262,12 @@ async function generateSceneVisuals(info, sceneNum, voSnippet, isUGC, totalScene
     };
 }
 
-function buildFallbackScene(info, sceneNum, isUGC, categoryData) {
+function buildFallbackScene(info, sceneNum, isUGC, categoryData, sceneBlueprint) {
     const gender = getGenderDesc();
+
+    if (sceneBlueprint) {
+        return `${sceneBlueprint.visualFocus}, ${sceneBlueprint.message}, ${sceneBlueprint.mustInclude.join(', ')}, authentic product interaction, human reaction, clear scene purpose`;
+    }
 
     if (categoryData) {
         const env = categoryData.environments[(sceneNum - 1) % categoryData.environments.length];
@@ -320,6 +331,7 @@ async function startAI() {
     const statusEl = document.getElementById('loadingStatus');
     const progEl = document.getElementById('progressBar');
     const info = { name: state.productName, category: state.selectedCategory, desc: state.productDescription };
+    let contentBrain = null;
 
     try {
         // ===== STEP 1: Viral Engine context (already resolved) =====
@@ -332,16 +344,23 @@ async function startAI() {
         });
         await delay(500);
 
-        // ===== STEP 2: Per-scene VO generation (VO Engine) =====
-        statusEl.textContent = '🎙️ Generate VO per scene...';
+        // ===== STEP 2: Content Brain V2 (meaning before style) =====
+        statusEl.textContent = '🧠 Building Content Brain V2...';
+        progEl.style.width = '8%';
+        contentBrain = buildContentBrain(info, categoryData, viralContext, isUGC);
+        console.log('Content Brain V2:', contentBrain);
+        await delay(300);
+
+        // ===== STEP 3: Per-scene VO generation (VO Engine V2) =====
+        statusEl.textContent = '🎙️ Generate human-level VO per scene...';
         progEl.style.width = '10%';
 
         let sceneVOs;
         try {
-            sceneVOs = await generatePerSceneVO(info, isUGC, categoryData, viralContext, totalScenes);
+            sceneVOs = await generatePerSceneVO(info, isUGC, categoryData, viralContext, totalScenes, contentBrain);
         } catch (e) {
             console.warn('Per-scene VO failed, using fallback:', e);
-            sceneVOs = buildFallbackPerSceneVO(info, viralContext.structure, viralContext, isUGC, categoryData);
+            sceneVOs = buildFallbackPerSceneVO(info, viralContext.structure, viralContext, isUGC, categoryData, contentBrain);
         }
 
         // Combine all VOs for display
@@ -354,7 +373,7 @@ async function startAI() {
             statusEl.textContent = `🎬 Generate Scene ${i + 1}/${totalScenes}...`;
             progEl.style.width = `${20 + (i + 1) * (70 / totalScenes)}%`;
             const sceneVO = sceneVOs[i] || sceneVOs[sceneVOs.length - 1];
-            const shot = await generateSceneVisuals(info, i + 1, sceneVO.vo, isUGC, totalScenes, categoryData, viralContext, sceneVO.imperfections);
+            const shot = await generateSceneVisuals(info, i + 1, sceneVO.vo, isUGC, totalScenes, categoryData, viralContext, sceneVO.imperfections, contentBrain);
             shots.push({
                 number: i + 1,
                 ...shot,
@@ -409,6 +428,7 @@ async function startAI() {
             categoryValidation,
             viralValidation,
             voSyncValidation,
+            contentBrain,
             viralContext: {
                 hook: viralContext.hook,
                 emotionalTrigger: viralContext.emotionalTrigger,
