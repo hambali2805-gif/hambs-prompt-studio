@@ -106,17 +106,30 @@ async function startAI() {
     progEl.style.width = '35%';
     let raw = '';
     let aiError = '';
+    let aiSource = '';
+    let aiResult = null;
+
     try {
-      raw = await callAI(buildGeminiPrompt(ctx));
+      aiResult = await callAI(buildGeminiPrompt(ctx));
+      raw = aiResult?.text || '';
+      aiSource = aiResult?.source || aiResult?.provider || '';
     } catch (e) {
       aiError = e?.message || String(e);
-      console.warn('Gemini plan failed, using V5 deterministic fallback:', e);
+      console.warn('AI plan failed before routing:', e);
       raw = '';
+      aiSource = '';
     }
 
     statusEl.textContent = '🧩 Routing through UGC/Ads + platform split...';
     progEl.style.width = '58%';
-    const plan = buildCreativePlan(raw, ctx, aiError);
+    const plan = buildCreativePlan(raw, ctx, aiError, aiSource);
+
+    if (!plan.source || plan.source === 'fallback') {
+      const reason = plan.fallbackReason || 'AI did not return a valid creative plan.';
+      const preview = plan.rawGeminiPreview ? `
+Raw AI preview: ${plan.rawGeminiPreview}` : '';
+      throw new Error(`AI creative plan failed. ${reason}${preview}`);
+    }
     await delay(250);
 
     statusEl.textContent = `📸 ${getImagePlatformLabel(ctx.imageModel)} + 🎥 ${getVideoPlatformLabel(ctx.videoModel)} prompts...`;

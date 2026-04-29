@@ -9,11 +9,11 @@ export function parseGeminiPlan(raw){
  try { return JSON.parse(text); } catch { return null; }
 }
 
-export function buildCreativePlan(raw, ctx, aiError = ''){
+export function buildCreativePlan(raw, ctx, aiError = '', aiSource = 'gemini'){
  const ai=parseGeminiPlan(raw);
 
  if(ai && Array.isArray(ai.scenes) && ai.scenes.length){
-   return normalizePlan(ai, ctx, false);
+   return normalizePlan(ai, ctx, false, aiSource || 'ai');
  }
 
  const fallback = buildFallbackPlan(ctx);
@@ -54,7 +54,7 @@ function normalizePlan(plan, ctx, fallback){
     meaning: compact(s.meaning)||beat.meaning||'Move the viewer through the story with product-specific proof.'
    });
  }
- return { source:fallback?'fallback':'gemini', voiceover:scenes.map((s,i)=>`(Scene ${i+1} - ${s.phase}) ${s.vo}`).join('\n'), scenes };
+ return { source:fallback?'fallback':aiSource, voiceover:scenes.map((s,i)=>`(Scene ${i+1} - ${s.phase}) ${s.vo}`).join('\n'), scenes };
 }
 
 export function buildFallbackPlan(ctx){
