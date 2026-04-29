@@ -6,6 +6,7 @@ import { engineConfig, PERSONAS, ENERGY_LEVELS } from '../config.js';
 import { state } from '../state.js';
 import { buildCTADirective, enforceCTA } from '../core/ctaBuilder.js';
 import { getCategoryNegativeContext } from '../categoryRules.js';
+import { removeUnsupportedClaims } from '../shared/safetyRules.js';
 
 // ==================== CONTROLLED SPEECH PATTERNS ====================
 // Fillers are now optional seasoning, not the main content.
@@ -32,7 +33,16 @@ export const VO_QUALITY_RULES = {
     ],
     genericPhrases: [
         'yang bikin beda', 'manfaatnya tuh kerasa banget', 'udah banyak yang buktiin',
-        'ini dia yang ditunggu-tunggu', 'bukan brand biasa', 'hasilnya luar biasa'
+        'ini dia yang ditunggu-tunggu', 'bukan brand biasa', 'hasilnya luar biasa',
+        'terasa lebih gampang dinikmati', 'checkout sebelum kehabisan',
+        'cuma tersisa sedikit lagi', 'lo pantas punya ini'
+    ],
+    weakPatterns: [
+        /bikin\s+.+\s+terasa\s+lebih\s+gampang\s+dinikmati/i,
+        /^(indomie|produk|.+)\s+bikin\s+/i,
+        /checkout\s+sebelum\s+kehabisan/i,
+        /cuma\s+tersisa\s+sedikit\s+lagi/i,
+        /lo\s+pantas\s+punya\s+ini/i
     ]
 };
 
@@ -73,50 +83,122 @@ export function enforceVORules(text) {
         .replace(/\s+,\s*/g, ', ')
         .replace(/^(,|\.|-|—)+\s*/g, '');
 
-    return cleanSpacing(cleaned);
+    return removeUnsupportedClaims(cleanSpacing(cleaned));
 }
 
 function looksTooGeneric(text) {
-    const t = String(text || '').toLowerCase();
-    if (t.split(/\s+/).length < 5) return true;
-    return VO_QUALITY_RULES.genericPhrases.some(p => t.includes(p));
+    const raw = String(text || '');
+    const t = raw.toLowerCase();
+    if (t.split(/\s+/).filter(Boolean).length < 5) return true;
+    if (VO_QUALITY_RULES.genericPhrases.some(p => t.includes(p))) return true;
+    return VO_QUALITY_RULES.weakPatterns.some(re => re.test(raw));
 }
 
-function fallbackFromBlueprint(info, phase, blueprint, lang) {
-    const product = info.name;
+function pickDetail(blueprint, index = 0, fallback = '') {
+    const must = blueprint?.mustInclude || [];
+    return must[index] || fallback || blueprint?.visualFocus || blueprint?.message || '';
+}
+
+function isFood(info) {
+    const category = String(info?.category || '').toUpperCase();
+    const name = String(info?.name || '').toLowerCase();
+    return category === 'MAKANAN' || /indomie|mie|makanan|food/.test(name);
+}
+
+function fallbackFoodID(product, phase, blueprint) {
+    const d0 = pickDetail(blueprint, 0, 'lapar malam');
+    const d1 = pickDetail(blueprint, 1, 'aroma bumbu panas');
+    const d2 = pickDetail(blueprint, 2, 'uap panasnya');
+
+    switch (phase) {
+        case 'hook':
+            return 'Jam segini tuh, perut lapar tapi males ribet.';
+        case 'problem':
+            return 'Yang paling nyebelin itu pas laper, tapi tenaga buat masak udah tinggal sedikit.';
+        case 'story':
+            return `Akhirnya bikin ${product}, dan ${d1} langsung bikin suasana rumah berasa lebih hangat.`;
+        case 'discovery':
+            return `Pas ${d1} ketemu bumbunya, rasanya langsung kebayang bahkan sebelum suapan pertama.`;
+        case 'reaction':
+            return 'Suapan pertama tuh bikin diem sebentar, kayak, oke ini yang dari tadi dicari.';
+        case 'proof':
+            return `Lihat ${d2} sama bumbunya yang nempel; ini bukan cuma ngomong enak, kelihatan dari teksturnya.`;
+        case 'demonstration':
+            return `Mienya diangkat pas masih panas, terus bumbunya dicampur sampai benar-benar rata.`;
+        case 'benefit':
+            return `Kadang yang dibutuhin cuma makanan hangat yang cepat, familiar, dan nggak bikin mikir panjang.`;
+        case 'feature_1':
+            return `Yang kerasa duluan itu ${d1}, langsung naik pas bungkus bumbunya dibuka.`;
+        case 'feature_2':
+            return `Terus teksturnya tetap enak digigit, apalagi pas bumbunya sudah nempel rata.`;
+        case 'social_proof':
+            return 'Mungkin ini alasan orang tetap balik lagi: rasanya sederhana, tapi memorinya kuat.';
+        case 'cta':
+            return `Kalau nanti ${d0}, simpan ${product} buat momen simpel yang bikin nyaman.`;
+        default:
+            return `Ini tipe makanan yang sederhana, tapi pas ${d0} rasanya jadi tepat banget.`;
+    }
+}
+
+function fallbackAdsID(product, phase, blueprint) {
+    const d0 = pickDetail(blueprint, 0, 'momen harian');
+    const d1 = pickDetail(blueprint, 1, 'detail produk');
+
+    switch (phase) {
+        case 'hook': return 'Ada momen sederhana yang langsung terasa berbeda saat detailnya tepat.';
+        case 'emotional': return `Di momen itu, ${product} menghadirkan kesan yang familiar, hangat, dan mudah diingat.`;
+        case 'brand_story': return `${product} dirancang untuk masuk ke keseharian tanpa terasa berlebihan.`;
+        case 'product_reveal': return `${product} menjadi pusat perhatian lewat visual yang jelas dan natural.`;
+        case 'feature_1': return `Detail pertamanya terlihat dari ${d1}, sesuatu yang bisa langsung dirasakan.`;
+        case 'feature_2': return `Lalu ada ${d0}, yang membuat manfaatnya terasa lebih relevan.`;
+        case 'demonstration': return `Buktinya hadir saat ${product} digunakan langsung dalam situasi nyata.`;
+        case 'benefit': return `Manfaatnya sederhana: membuat ${d0} terasa lebih praktis dan nyaman.`;
+        case 'social_proof': return `Kedekatan ${product} dengan momen sehari-hari membuatnya mudah diingat.`;
+        case 'cta': return `Temukan kembali momen sederhana bersama ${product}.`;
+        default: return `${product} hadir dengan detail yang relevan untuk kebutuhan sehari-hari.`;
+    }
+}
+
+
+function fallbackGenericID(product, phase, blueprint) {
+    const d0 = pickDetail(blueprint, 0, 'momen sehari-hari');
+    const d1 = pickDetail(blueprint, 1, 'detail kecilnya');
+
+    switch (phase) {
+        case 'hook': return `Pernah nggak, ada momen kecil yang tiba-tiba bikin butuh sesuatu yang pas?`;
+        case 'problem': return `Masalahnya sering bukan besar, tapi detail kecil yang bikin aktivitas terasa kurang nyaman.`;
+        case 'solution': return `${product} masuk di situ karena manfaatnya langsung nyambung ke kebutuhan harian.`;
+        case 'story': return `Awalnya biasa aja, sampai ${d1} mulai kelihatan di momen nyata.`;
+        case 'discovery': return `Pas dicoba langsung kerasa, ini bukan cuma klaim, tapi ada detail yang bisa dilihat.`;
+        case 'proof': return `Buktinya ada di ${d1}, bukan cuma di kata-kata.`;
+        case 'reaction': return `Reaksinya kecil tapi jujur: ini ternyata kepakai banget.`;
+        case 'demonstration': return `Lihat cara produk ini dipakai langsung di situasi nyata, bukan cuma dipajang.`;
+        case 'benefit': return `Manfaatnya paling kerasa pas ${d0}, karena bikin momen itu lebih praktis.`;
+        case 'cta': return `Kalau situasinya mirip, coba simpan ${product} buat nanti.`;
+        default: return `${product} paling masuk akal saat ${d0}, karena detailnya terasa nyata.`;
+    }
+}
+
+function fallbackFromBlueprint(info, phase, blueprint, lang, isUGCMode = true) {
+    const product = info.name || 'Produk';
     const must = blueprint?.mustInclude || [];
     const detailA = must[0] || blueprint?.message || info.desc || product;
     const detailB = must[1] || blueprint?.visualFocus || '';
 
     if (lang === 'EN') {
         switch (phase) {
-            case 'hook': return `Have you ever suddenly craved something familiar during ${detailA}?`;
-            case 'emotional': return `${product} hits that familiar feeling through ${detailA}.`;
-            case 'brand_story': return `This is the kind of product people remember because the moment feels real.`;
-            case 'product_reveal': return `That is where ${product} comes in, simple and instantly recognizable.`;
-            case 'feature_1': return `The first thing you notice is ${detailA}.`;
-            case 'feature_2': return `Then ${detailB || 'the small details'} makes it feel even more complete.`;
-            case 'demonstration': return `Watch the proof in the action: ${detailA}.`;
-            case 'benefit': return `So the benefit is simple: ${detailA}.`;
-            case 'social_proof': return `People keep coming back because this fits a real everyday moment.`;
-            case 'cta': return `Try ${product} for your next ${detailA}, before the craving passes.`;
-            default: return `${product} makes ${detailA} feel easier to enjoy.`;
+            case 'hook': return `Ever get hungry at night but too tired to make it complicated?`;
+            case 'story': return `Then ${product} comes in, and that small familiar detail makes the moment feel warmer.`;
+            case 'discovery': return `The first cue is ${detailB || detailA}, the kind of detail that makes you pause for a second.`;
+            case 'proof': return `You can see the proof in ${detailA}; it feels real, not staged.`;
+            case 'cta': return `Keep ${product} for the kind of moment when you need something simple and comforting.`;
+            default: return `${product} works because the moment feels specific: ${detailA}.`;
         }
     }
 
-    switch (phase) {
-        case 'hook': return `Lo pernah nggak tiba-tiba kangen sesuatu yang familiar pas ${detailA}?`;
-        case 'emotional': return `${product} itu ngena karena detail kecilnya: ${detailA}.`;
-        case 'brand_story': return `Ini tipe produk yang diingat bukan karena ramai, tapi karena momennya terasa dekat.`;
-        case 'product_reveal': return `Di momen kayak gitu, ${product} masuknya natural banget.`;
-        case 'feature_1': return `Yang pertama kerasa itu ${detailA}.`;
-        case 'feature_2': return `Terus detail lainnya, ${detailB || 'cara produknya dipakai'}, bikin momennya makin lengkap.`;
-        case 'demonstration': return `Lihat langsung prosesnya: ${detailA}.`;
-        case 'benefit': return `Benefit-nya simpel: ${detailA}.`;
-        case 'social_proof': return `Makanya orang balik lagi, karena ini cocok sama momen sehari-hari.`;
-        case 'cta': return `Kalau lagi ${detailA}, cobain ${product} sebelum craving-nya lewat.`;
-        default: return `${product} bikin ${detailA} terasa lebih gampang dinikmati.`;
-    }
+    if (!isUGCMode) return fallbackAdsID(product, phase, blueprint);
+    if (isFood(info)) return fallbackFoodID(product, phase, blueprint);
+    return fallbackGenericID(product, phase, blueprint);
 }
 
 // ==================== VO HUMANIZER ====================
@@ -177,7 +259,11 @@ export function buildSceneVOPrompt(params) {
         : '';
 
     const brainContext = contentBrain
-        ? `\nCONTENT BRAIN V2:\n- Angle: ${contentBrain.strategy.angle}\n- Audience: ${contentBrain.strategy.audience}\n- Tension/use case: ${contentBrain.strategy.tension}\n- Promise: ${contentBrain.strategy.promise}\n- Scene function: ${blueprint?.function || ''}\n- Scene message: ${blueprint?.message || ''}\n- Must include detail(s): ${(blueprint?.mustInclude || []).join(', ')}\n- Visual/action context: ${blueprint?.visualFocus || ''}\n- Avoid: ${(blueprint?.avoid || []).join(', ')}`
+        ? `\nCONTENT BRAIN V4:\n- Angle: ${contentBrain.strategy.angle}\n- Audience: ${contentBrain.strategy.audience}\n- Tension/use case: ${contentBrain.strategy.tension}\n- Promise: ${contentBrain.strategy.promise}\n- Scene function: ${blueprint?.function || ''}\n- Scene message: ${blueprint?.message || ''}\n- Must include detail(s): ${(blueprint?.mustInclude || []).join(', ')}\n- Visual/action context: ${blueprint?.visualFocus || ''}\n- Avoid: ${(blueprint?.avoid || []).join(', ')}`
+        : '';
+
+    const modeDirective = contentBrain?.modeProfile?.promptBlock
+        ? '\n' + contentBrain.modeProfile.promptBlock
         : '';
 
     const hookDirective = (sceneIndex === 0 && viralContext)
@@ -198,6 +284,7 @@ Energy: ${engineConfig.energy} — ${energy.pacing}
 ${categoryContext}
 ${emotionDirective}
 ${brainContext}
+${modeDirective}
 ${hookDirective}
 ${previousContext}
 ${ctaDirective}
@@ -212,6 +299,8 @@ QUALITY RULES:
 - Durasi saat dibaca: 2-5 detik.
 - Harus nyambung dengan scene sebelumnya.
 - Kalau emotion adalah nostalgia/comfort, masukkan memori atau situasi spesifik, bukan cuma kata “nostalgia”.
+- Hindari pola berulang seperti “produk bikin situasi terasa lebih gampang dinikmati”.
+- Jangan pakai scarcity palsu untuk UGC makanan: “stok terbatas”, “checkout sebelum kehabisan”, “cuma tersisa sedikit lagi”.
 - Kalau phase feature/benefit/demo, sebut detail yang bisa terlihat atau dirasakan.
 
 Output: HANYA teks VO, tanpa label atau penjelasan.`;
@@ -227,7 +316,11 @@ export function buildPerSceneVO(voTexts, structure, viralContext, lang, contentB
 
         let vo = enforceVORules(rawVO);
         if (!vo || looksTooGeneric(vo)) {
-            vo = fallbackFromBlueprint({ name: contentBrain?.intelligence?.product || 'Produk', category: '', desc: '' }, phase, blueprint, l);
+            vo = fallbackFromBlueprint({
+                name: contentBrain?.intelligence?.product || 'Produk',
+                category: contentBrain?.intelligence?.category || '',
+                desc: contentBrain?.intelligence?.description || ''
+            }, phase, blueprint, l, (contentBrain?.mode || engineConfig.mode) !== 'ads');
         }
 
         vo = humanizeVO(vo, l, phase);
@@ -260,7 +353,7 @@ export function buildFallbackPerSceneVO(info, structure, viralContext, isUGC, ca
     return structure.map((phaseObj, index) => {
         const phase = phaseObj.phase;
         const blueprint = contentBrain?.sceneBlueprints?.[index];
-        let vo = fallbackFromBlueprint(info, phase, blueprint, lang);
+        let vo = fallbackFromBlueprint(info, phase, blueprint, lang, isUGC);
         vo = humanizeVO(vo, lang, phase);
 
         if (phase === 'cta') {

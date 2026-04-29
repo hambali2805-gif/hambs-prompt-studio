@@ -1,7 +1,7 @@
 // ==================== GLOBAL CONFIG ====================
 export const GEMINI_MODEL = 'gemini-2.5-flash';
-export const SESSION_KEY = 'hambs_session_v28';
-export const PROJECTS_KEY = 'hambs_projects_v28';
+export const SESSION_KEY = 'hambs_session_v29';
+export const PROJECTS_KEY = 'hambs_projects_v29';
 export const API_KEY_STORAGE = 'hambs_gemini_key';
 export const TARGET_AD_SHOTS = 10;
 export const TARGET_UGC_SHOTS = 5;
@@ -15,6 +15,7 @@ export function getGeminiApiUrl(key) {
 export const engineConfig = {
     mode: 'ugc',           // 'ugc' | 'ads'
     platform: 'veo',       // 'veo' | 'seedance'
+    imagePlatform: 'banana_pro', // 'banana_pro' | 'gpt_image'
     persona: 'best_friend',// 'best_friend' | 'reviewer' | 'seller' | 'storyteller'
     energy: 'medium',      // 'low' | 'medium' | 'high' | 'chaotic'
     realism: 70            // 0-100

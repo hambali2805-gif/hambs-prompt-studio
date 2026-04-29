@@ -1,21 +1,20 @@
-// ==================== PROMPT BUILDER ====================
-// Category-aware prompt builder. Uses CATEGORY_RULES for all context.
-// No hardcoded product-type detection — category drives everything.
+// ==================== PROMPT BUILDER V4 ====================
+// Routes prompt generation through separated mode/platform adapters.
+// UGC/Ads, Banana Pro/GPT Image, and Veo/Seedance stay isolated.
 
 import { engineConfig } from './config.js';
 import { state } from './state.js';
-import { getVeoLensPrompt, getVeoLighting, getVeoCameraMove, buildVeoVideoPrompt } from './platforms/veo.js';
-import { getSeedanceMotion, getSeedanceLighting, getSeedanceInteraction, buildSeedanceVideoPrompt, SEEDANCE_SYSTEM_PROMPT } from './platforms/seedance.js';
+import { getVeoLensPrompt } from './platforms/veo.js';
+import { SEEDANCE_SYSTEM_PROMPT } from './platforms/video/seedance/index.js';
 import { getUGCStyleContext } from './engines/ugcEngine.js';
 import { getAdsStyleContext } from './engines/adsEngine.js';
 import { deduplicatePrompt } from './core/antiRepetition.js';
 import { callAIWithSystem } from './api.js';
 import { cleanText } from './utils.js';
-import { getCategoryData, pickCategorySensory } from './categoryRules.js';
-
-function hasCharacterReference() {
-    return !!state.uploadedFiles.char;
-}
+import { pickCategorySensory } from './categoryRules.js';
+import { buildImageByPlatform } from './platforms/image/index.js';
+import { buildVideoByPlatform } from './platforms/video/index.js';
+import { buildCharacterPrefix } from './shared/referenceHandler.js';
 
 function getGenderDesc() {
     const g = document.getElementById('charGender')?.value || 'wanita';
@@ -24,76 +23,81 @@ function getGenderDesc() {
         : { subj: 'A young Indonesian woman', pronoun: 'she', possessive: 'her' };
 }
 
-function getNegativePrompt(categoryData) {
-    const base = 'deformed, blurry, low quality, distorted face, extra fingers, bad anatomy, watermark, text overlay, logo';
-    const categoryNeg = categoryData
-        ? ', ' + categoryData.negativeContext.join(', ')
-        : '';
-    return state.customNegativePrompt
-        ? `${base}${categoryNeg}, ${state.customNegativePrompt}`
-        : `${base}${categoryNeg}`;
-}
-
 function getCategorySensoryDetail(categoryData) {
     if (!categoryData) return '';
     return ', ' + pickCategorySensory(categoryData);
 }
 
-export function buildImagePrompt(sceneDesc, voSnippet, isUGC, categoryData) {
+export function getImagePlatformLabel(platform = engineConfig.imagePlatform || state.selectedImageModel || 'banana_pro') {
+    return platform === 'gpt_image' ? 'GPT Image' : 'Banana Pro';
+}
+
+export function getVideoPlatformLabel(platform = engineConfig.platform || state.selectedVideoModel || 'veo') {
+    return platform === 'seedance' ? 'Seedance 2.0' : 'Veo 3.1';
+}
+
+export function buildImagePrompt(sceneDesc, voSnippet, isUGC, categoryData, sceneBlueprint = null) {
     const gender = getGenderDesc();
-    const style = isUGC ? getUGCStyleContext(categoryData) : getAdsStyleContext(categoryData);
-
-    const charRef = hasCharacterReference()
-        ? `[REF:CHARACTER] ${gender.subj} (reference character), `
-        : `${gender.subj}, ${style.outfit}, `;
-
-    const prodRef = state.uploadedFiles.prod.some(p => p)
-        ? '[REF:PRODUCT] '
-        : `${state.productName} (${state.selectedCategory}), `;
-
     const lens = getVeoLensPrompt(state.lensStyle);
-    const neg = getNegativePrompt(categoryData);
-    const sensoryKw = getCategorySensoryDetail(categoryData);
+    const sensoryDetail = getCategorySensoryDetail(categoryData);
+    const mode = isUGC ? 'ugc' : 'ads';
 
-    const realismNote = isUGC
-        ? `Phone camera quality, realism: ${engineConfig.realism}/100. ${style.imperfections}`
-        : 'Studio-grade photography, polished and flawless.';
+    const result = buildImageByPlatform({
+        platform: engineConfig.imagePlatform || state.selectedImageModel || 'banana_pro',
+        sceneDesc,
+        voSnippet,
+        mode,
+        categoryData,
+        state,
+        engineConfig,
+        gender,
+        lensPrompt: lens,
+        sensoryDetail,
+        sceneBlueprint
+    });
 
-    const photoRealism = 'high-resolution photography, photorealistic skin texture, sharp product details, hyper-realistic';
-    const styleKeywords = `${style.camera}, ${style.lighting}, ${style.vibe}`;
+    if (result.validation && !result.validation.valid) {
+        console.warn('Image prompt validation:', result.validation.warnings);
+    }
 
-    const raw = `${charRef}${sceneDesc}. ${prodRef}Product: ${state.productName}${sensoryKw}. ${photoRealism}. ${lens}. ${styleKeywords}. ${realismNote}. --no ${neg}`;
-    return deduplicatePrompt(raw);
+    return deduplicatePrompt(result.prompt);
 }
 
 export function buildVideoPrompt(sceneDesc, voSnippet, sceneNum, totalScenes, isUGC, categoryData, sceneBlueprint = null) {
     const gender = getGenderDesc();
+    const mode = isUGC ? 'ugc' : 'ads';
     const style = isUGC ? getUGCStyleContext(categoryData) : getAdsStyleContext(categoryData);
     const sensoryDetail = getCategorySensoryDetail(categoryData);
 
-    const charRef = hasCharacterReference()
-        ? `${gender.subj} (consistent character from reference), `
-        : `${gender.subj}, ${style.outfit}, `;
+    const charRef = buildCharacterPrefix({
+        uploadedFiles: state.uploadedFiles,
+        gender,
+        sceneDesc,
+        mode
+    }) || `${gender.subj}, ${style.outfit}, `;
 
-    if (engineConfig.platform === 'seedance') {
-        const motion = getSeedanceMotion(sceneNum, isUGC);
-        const lighting = getSeedanceLighting(isUGC);
-        const interaction = getSeedanceInteraction(sceneNum);
+    const result = buildVideoByPlatform({
+        platform: engineConfig.platform || state.selectedVideoModel || 'veo',
+        sceneNum,
+        totalScenes,
+        mode,
+        charRef,
+        sceneDesc,
+        sensoryDetail,
+        productName: state.productName,
+        sceneBlueprint,
+        voSnippet,
+        categoryData,
+        state,
+        engineConfig,
+        gender
+    });
 
-        return deduplicatePrompt(buildSeedanceVideoPrompt({
-            charRef, sceneDesc, sensoryDetail, motion, lighting,
-            style: style.vibe, productName: state.productName, interaction, sceneBlueprint, voSnippet
-        }));
+    if (result.validation && !result.validation.valid) {
+        console.warn('Video prompt validation:', result.validation.warnings);
     }
 
-    // Veo
-    const cam = getVeoCameraMove(sceneNum, isUGC);
-    const lighting = getVeoLighting(isUGC);
-
-    return deduplicatePrompt(buildVeoVideoPrompt({
-        charRef, sceneDesc, sensoryDetail, cam, lighting,
-        style: style.vibe, productName: state.productName, sceneBlueprint, voSnippet
-    }));
+    return deduplicatePrompt(result.prompt);
 }
 
 export async function buildSeedanceAIPrompt(sceneDesc, info, gender, isUGC, categoryData, sceneBlueprint = null, voSnippet = '') {
@@ -103,12 +107,14 @@ export async function buildSeedanceAIPrompt(sceneDesc, info, gender, isUGC, cate
 
     const blueprintContext = sceneBlueprint
         ? `
-Content Brain V2:
+Content Brain V4:
 - Function: ${sceneBlueprint.function}
 - Message: ${sceneBlueprint.message}
 - Visual focus: ${sceneBlueprint.visualFocus}
 - Must include: ${sceneBlueprint.mustInclude.join(', ')}
-- Avoid: ${sceneBlueprint.avoid.join(', ')}`
+- Avoid: ${sceneBlueprint.avoid.join(', ')}
+- Mode visual rule: ${sceneBlueprint.visualRule || ''}
+- Mode voice rule: ${sceneBlueprint.voiceRule || ''}`
         : '';
 
     const voContext = voSnippet
@@ -125,9 +131,10 @@ Karakter: ${gender.subj}
 ${sensoryContext}
 ${blueprintContext}
 ${voContext}
-Gaya: ${isUGC ? 'UGC handheld casual, phone-recorded feel' : 'IKLAN cinematic professional, premium commercial'}
+Mode: ${isUGC ? 'UGC' : 'ADS'}
+Gaya: ${isUGC ? 'UGC handheld casual, phone-recorded feel, natural imperfect creator timing' : 'IKLAN cinematic professional, premium commercial, controlled brand-safe motion'}
 Fokus: temporal consistency, fluid natural movement, human-product interaction dynamics, believable hands, real body timing, micro-expression, and product physics.
-Jangan buat prompt generic/stock footage. Satu paragraf narasi teknis.`
+Jangan campur gaya UGC dan Ads. Jangan buat prompt generic/stock footage. Satu paragraf narasi teknis.`
         ));
     } catch (e) {
         return null;
@@ -147,6 +154,8 @@ export function buildStructuredOutput(vo, shots, info, viralContext, sceneVOs) {
                 phase: sceneVO ? sceneVO.phase : (shot.arcPhase || ''),
                 emotion: sceneVO ? sceneVO.emotion : null,
                 imperfections: sceneVO ? sceneVO.imperfections : [],
+                imagePlatform: getImagePlatformLabel(),
+                videoPlatform: getVideoPlatformLabel(),
                 visual_prompt: shot.imagePrompt,
                 motion: shot.videoPrompt,
                 purpose: shot.arcPhase || shot.title,
@@ -155,6 +164,7 @@ export function buildStructuredOutput(vo, shots, info, viralContext, sceneVOs) {
         }),
         config: {
             mode: engineConfig.mode,
+            imagePlatform: engineConfig.imagePlatform || state.selectedImageModel || 'banana_pro',
             platform: engineConfig.platform,
             persona: engineConfig.persona,
             energy: engineConfig.energy,
@@ -165,11 +175,10 @@ export function buildStructuredOutput(vo, shots, info, viralContext, sceneVOs) {
             product: info.name,
             category: info.category,
             generatedAt: new Date().toISOString(),
-            engine: 'viral-content-engine-v1'
+            engine: 'v4-mode-platform-split'
         }
     };
 
-    // Add viral engine metadata
     if (viralContext) {
         structured.viralEngine = {
             hook: viralContext.hook,

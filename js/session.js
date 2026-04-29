@@ -16,6 +16,7 @@ export function saveSession() {
             selectedTone: state.selectedTone,
             customNegativePrompt: state.customNegativePrompt,
             selectedVideoModel: state.selectedVideoModel,
+            selectedImageModel: state.selectedImageModel,
             ugcBackground: state.ugcBackground,
             presentationKeywords: state.presentationKeywords,
             lensStyle: state.lensStyle,
@@ -52,6 +53,7 @@ export function restoreSession() {
             selectedTone: s.selectedTone || 'jaksel',
             customNegativePrompt: s.customNegativePrompt || '',
             selectedVideoModel: s.selectedVideoModel || 'veo',
+            selectedImageModel: s.selectedImageModel || 'banana_pro',
             ugcBackground: s.ugcBackground || 'Scandinavian-Japanese fusion, beige limewash wall, light oak wood slats, pampas grass in ceramic vase, linen textures, clean space.',
             presentationKeywords: s.presentationKeywords || 'Direct eye contact, framing: medium close-up, hand gestures, expressive facial expressions, talking to camera, FaceTime-style framing.',
             lensStyle: s.lensStyle || 'portrait',
@@ -103,7 +105,8 @@ function restoreOptionSelections() {
     restoreGridSelection('#ugcBgGrid', 'data-keywords', state.ugcBackground);
     restoreGridSelection('#presentationGrid', 'data-keywords', state.presentationKeywords);
     document.querySelectorAll('[data-model]').forEach(b => b.classList.remove('selected'));
-    document.querySelector(`[data-model="${state.selectedVideoModel}"]`)?.classList.add('selected');
+    document.querySelector('#imageModelGrid [data-model="' + state.selectedImageModel + '"]')?.classList.add('selected');
+    document.querySelector('#videoModelGrid [data-model="' + state.selectedVideoModel + '"]')?.classList.add('selected');
 
     // Restore engine config UI
     const personaEl = document.getElementById('personaSelect');
@@ -197,6 +200,7 @@ export function saveCurrentProject() {
         selectedTone: state.selectedTone,
         customNegativePrompt: state.customNegativePrompt,
         selectedVideoModel: state.selectedVideoModel,
+            selectedImageModel: state.selectedImageModel,
         ugcBackground: state.ugcBackground,
         presentationKeywords: state.presentationKeywords,
         lensStyle: state.lensStyle,
@@ -213,7 +217,7 @@ export function saveCurrentProject() {
 export function exportProject() {
     if (!state.generatedData) { alert('Generate dulu sebelum export!'); return; }
     const data = {
-        version: 'hambs_v28_category_engine',
+        version: 'hambs_v29_mode_platform_split',
         name: state.currentProjectName || 'Untitled',
         contentStyle: state.contentStyle,
         productName: state.productName,
@@ -224,6 +228,7 @@ export function exportProject() {
         selectedTone: state.selectedTone,
         customNegativePrompt: state.customNegativePrompt,
         selectedVideoModel: state.selectedVideoModel,
+            selectedImageModel: state.selectedImageModel,
         ugcBackground: state.ugcBackground,
         presentationKeywords: state.presentationKeywords,
         lensStyle: state.lensStyle,
@@ -264,6 +269,7 @@ export function importProject(goToStepFn, displayMasterPlanFn) {
                     selectedTone: data.selectedTone || 'jaksel',
                     customNegativePrompt: data.customNegativePrompt || '',
                     selectedVideoModel: data.selectedVideoModel || 'veo',
+                    selectedImageModel: data.selectedImageModel || 'banana_pro',
                     ugcBackground: data.ugcBackground || '',
                     presentationKeywords: data.presentationKeywords || '',
                     lensStyle: data.lensStyle || 'portrait',
@@ -321,6 +327,7 @@ export function loadSelectedProject(goToStepFn, displayMasterPlanFn) {
         selectedTone: p.selectedTone || 'jaksel',
         customNegativePrompt: p.customNegativePrompt || '',
         selectedVideoModel: p.selectedVideoModel || 'veo',
+        selectedImageModel: p.selectedImageModel || 'banana_pro',
         ugcBackground: p.ugcBackground || '',
         presentationKeywords: p.presentationKeywords || '',
         lensStyle: p.lensStyle || 'portrait',
