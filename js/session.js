@@ -2,6 +2,7 @@
 import { SESSION_KEY, PROJECTS_KEY, API_KEY_STORAGE, engineConfig, updateConfig } from './config.js';
 import { state, updateState } from './state.js';
 import { compressImage } from './utils.js';
+import { inferPresentationType } from './intelligence/presentationProfiles.js';
 
 export function saveSession() {
     try {
@@ -19,6 +20,7 @@ export function saveSession() {
             selectedImageModel: state.selectedImageModel,
             ugcBackground: state.ugcBackground,
             presentationKeywords: state.presentationKeywords,
+            presentationType: state.presentationType || inferPresentationType(state.presentationKeywords || '') || 'talking_head',
             lensStyle: state.lensStyle,
             charPreview: state.uploadedFiles.char?.preview,
             prodPreviews: state.uploadedFiles.prod.map(p => p?.preview),
@@ -56,6 +58,7 @@ export function restoreSession() {
             selectedImageModel: s.selectedImageModel || 'banana_pro',
             ugcBackground: s.ugcBackground || 'Scandinavian-Japanese fusion, beige limewash wall, light oak wood slats, pampas grass in ceramic vase, linen textures, clean space.',
             presentationKeywords: s.presentationKeywords || 'Direct eye contact, framing: medium close-up, hand gestures, expressive facial expressions, talking to camera, FaceTime-style framing.',
+            presentationType: s.presentationType || inferPresentationType(s.presentationKeywords || '') || 'talking_head',
             lensStyle: s.lensStyle || 'portrait',
             generatedData: s.generatedData
         });
@@ -203,6 +206,7 @@ export function saveCurrentProject() {
             selectedImageModel: state.selectedImageModel,
         ugcBackground: state.ugcBackground,
         presentationKeywords: state.presentationKeywords,
+        presentationType: state.presentationType || inferPresentationType(state.presentationKeywords || '') || 'talking_head',
         lensStyle: state.lensStyle,
         generatedData: state.generatedData,
         engineConfig: { ...engineConfig },
@@ -231,6 +235,7 @@ export function exportProject() {
             selectedImageModel: state.selectedImageModel,
         ugcBackground: state.ugcBackground,
         presentationKeywords: state.presentationKeywords,
+        presentationType: state.presentationType || inferPresentationType(state.presentationKeywords || '') || 'talking_head',
         lensStyle: state.lensStyle,
         generatedData: state.generatedData,
         engineConfig: { ...engineConfig },
@@ -272,6 +277,7 @@ export function importProject(goToStepFn, displayMasterPlanFn) {
                     selectedImageModel: data.selectedImageModel || 'banana_pro',
                     ugcBackground: data.ugcBackground || '',
                     presentationKeywords: data.presentationKeywords || '',
+                    presentationType: data.presentationType || inferPresentationType(data.presentationKeywords || '') || 'talking_head',
                     lensStyle: data.lensStyle || 'portrait',
                     generatedData: data.generatedData,
                     currentProjectName: data.name || ''
@@ -330,6 +336,7 @@ export function loadSelectedProject(goToStepFn, displayMasterPlanFn) {
         selectedImageModel: p.selectedImageModel || 'banana_pro',
         ugcBackground: p.ugcBackground || '',
         presentationKeywords: p.presentationKeywords || '',
+        presentationType: p.presentationType || inferPresentationType(p.presentationKeywords || '') || 'talking_head',
         lensStyle: p.lensStyle || 'portrait',
         generatedData: p.generatedData
     });
