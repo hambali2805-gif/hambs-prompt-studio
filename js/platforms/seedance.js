@@ -7,12 +7,15 @@ export const SEEDANCE_CONFIG = {
 };
 
 export const SEEDANCE_SYSTEM_PROMPT = `ROLE: Kamu adalah AI Director & Senior Cinematographer spesialis mesin video AI Seedance 2.0.
+TUJUAN: Buat prompt yang terasa human-level, spesifik, dan tidak generic. Seedance kuat di motion, jadi prompt harus menekankan body dynamics, hand movement, timing, micro-reaction, dan continuity.
 STRUKTUR PROMPT SEEDANCE 2.0 (WAJIB):
-1. Subject & Action Detail — focus on human-product interaction and body dynamics.
-2. Camera Motion: Dolly In/Out, Orbital Tracking, Pan, Tilt, Rack Focus.
-3. Lighting & Optics: Rim lighting, Volumetric, Softbox, Lensa spesifik.
-4. Motion Dynamics: emphasize real-time movement, fluid transitions, human action continuity.
-5. Ending: --motion 6 --fps 30 --cfg 7 --upscale 2.
+1. Subject & Action Detail — jelaskan aksi manusia + interaksi produk secara konkret, bukan pose iklan kosong.
+2. Story Intent — hubungkan aksi visual dengan pesan scene/voiceover.
+3. Camera Motion — Dolly In/Out, Orbital Tracking, Pan, Tilt, Rack Focus, Handheld Follow, atau POV movement yang sesuai adegan.
+4. Lighting & Optics — natural/practical/studio lighting yang mendukung mood, bukan keyword acak.
+5. Motion Dynamics — real-time movement, hand continuity, product physics, micro-expression, natural pause, fluid transition.
+6. Anti-generic — hindari stock footage, floating product hero shot, acting berlebihan, dan scene yang tidak nyambung dengan VO.
+7. Ending: --motion 6 --fps 30 --cfg 7 --upscale 2.
 Jangan gunakan bullet points. Output hanya satu paragraf narasi prompt.`;
 
 const MOTION_PRESETS_UGC = [
@@ -66,6 +69,31 @@ export function getSeedanceInteraction(sceneNum) {
 }
 
 export function buildSeedanceVideoPrompt(params) {
-    const { charRef, sceneDesc, sensoryDetail, motion, lighting, style, productName, interaction } = params;
-    return `${charRef}${sceneDesc}${sensoryDetail}. Camera Motion: ${motion}. Lighting: ${lighting}. Human Interaction: ${interaction}. Temporal Consistency: maintain consistent character appearance and fluid natural movement across frames. Product: ${productName}. ${style}. --motion 6 --fps 30 --cfg 7 --upscale 2`;
+    const {
+        charRef, sceneDesc, sensoryDetail, motion, lighting, style,
+        productName, interaction, sceneBlueprint, voSnippet
+    } = params;
+
+    const blueprintBlock = sceneBlueprint
+        ? `Story Intent: ${sceneBlueprint.function}. Human Message: ${sceneBlueprint.message}. Visual Focus: ${sceneBlueprint.visualFocus}. Must Include: ${sceneBlueprint.mustInclude.join(', ')}.`
+        : '';
+
+    const voBlock = voSnippet
+        ? `Voiceover Context: "${voSnippet}".`
+        : '';
+
+    const antiGeneric = 'Avoid generic stock footage, floating product shots, overacting, disconnected beauty shots, and repeated motion. Show believable body mechanics, hand continuity, product physics, micro-reaction, and one clear action beat.';
+
+    return [
+        `${charRef}${sceneDesc}${sensoryDetail}.`,
+        blueprintBlock,
+        voBlock,
+        `Human Interaction: ${interaction}.`,
+        `Camera Motion: ${motion}. Lighting: ${lighting}.`,
+        `Product: ${productName}.`,
+        antiGeneric,
+        `Style: ${style}.`,
+        'Temporal Consistency: maintain consistent character appearance, realistic hands, fluid natural movement, and coherent motion across frames.',
+        '--motion 6 --fps 30 --cfg 7 --upscale 2'
+    ].filter(Boolean).join(' ');
 }

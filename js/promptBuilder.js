@@ -59,14 +59,14 @@ export function buildImagePrompt(sceneDesc, voSnippet, isUGC, categoryData) {
         ? `Phone camera quality, realism: ${engineConfig.realism}/100. ${style.imperfections}`
         : 'Studio-grade photography, polished and flawless.';
 
-    const photoRealism = 'shot on 35mm lens, high-resolution photography, photorealistic skin texture, sharp product details, hyper-realistic';
+    const photoRealism = 'high-resolution photography, photorealistic skin texture, sharp product details, hyper-realistic';
     const styleKeywords = `${style.camera}, ${style.lighting}, ${style.vibe}`;
 
     const raw = `${charRef}${sceneDesc}. ${prodRef}Product: ${state.productName}${sensoryKw}. ${photoRealism}. ${lens}. ${styleKeywords}. ${realismNote}. --no ${neg}`;
     return deduplicatePrompt(raw);
 }
 
-export function buildVideoPrompt(sceneDesc, voSnippet, sceneNum, totalScenes, isUGC, categoryData) {
+export function buildVideoPrompt(sceneDesc, voSnippet, sceneNum, totalScenes, isUGC, categoryData, sceneBlueprint = null) {
     const gender = getGenderDesc();
     const style = isUGC ? getUGCStyleContext(categoryData) : getAdsStyleContext(categoryData);
     const sensoryDetail = getCategorySensoryDetail(categoryData);
@@ -82,7 +82,7 @@ export function buildVideoPrompt(sceneDesc, voSnippet, sceneNum, totalScenes, is
 
         return deduplicatePrompt(buildSeedanceVideoPrompt({
             charRef, sceneDesc, sensoryDetail, motion, lighting,
-            style: style.vibe, productName: state.productName, interaction
+            style: style.vibe, productName: state.productName, interaction, sceneBlueprint, voSnippet
         }));
     }
 
@@ -92,13 +92,28 @@ export function buildVideoPrompt(sceneDesc, voSnippet, sceneNum, totalScenes, is
 
     return deduplicatePrompt(buildVeoVideoPrompt({
         charRef, sceneDesc, sensoryDetail, cam, lighting,
-        style: style.vibe, productName: state.productName
+        style: style.vibe, productName: state.productName, sceneBlueprint, voSnippet
     }));
 }
 
-export async function buildSeedanceAIPrompt(sceneDesc, info, gender, isUGC, categoryData) {
+export async function buildSeedanceAIPrompt(sceneDesc, info, gender, isUGC, categoryData, sceneBlueprint = null, voSnippet = '') {
     const sensoryContext = categoryData
         ? `Sensory: ${categoryData.sensory.slice(0, 2).join(', ')}`
+        : '';
+
+    const blueprintContext = sceneBlueprint
+        ? `
+Content Brain V2:
+- Function: ${sceneBlueprint.function}
+- Message: ${sceneBlueprint.message}
+- Visual focus: ${sceneBlueprint.visualFocus}
+- Must include: ${sceneBlueprint.mustInclude.join(', ')}
+- Avoid: ${sceneBlueprint.avoid.join(', ')}`
+        : '';
+
+    const voContext = voSnippet
+        ? `
+Voiceover context: ${voSnippet}`
         : '';
 
     try {
@@ -108,9 +123,11 @@ Visual: ${sceneDesc}
 Produk: ${info.name} (${info.category})
 Karakter: ${gender.subj}
 ${sensoryContext}
+${blueprintContext}
+${voContext}
 Gaya: ${isUGC ? 'UGC handheld casual, phone-recorded feel' : 'IKLAN cinematic professional, premium commercial'}
-Fokus: temporal consistency, fluid natural movement, human-product interaction dynamics.
-Satu paragraf narasi teknis.`
+Fokus: temporal consistency, fluid natural movement, human-product interaction dynamics, believable hands, real body timing, micro-expression, and product physics.
+Jangan buat prompt generic/stock footage. Satu paragraf narasi teknis.`
         ));
     } catch (e) {
         return null;
@@ -132,7 +149,8 @@ export function buildStructuredOutput(vo, shots, info, viralContext, sceneVOs) {
                 imperfections: sceneVO ? sceneVO.imperfections : [],
                 visual_prompt: shot.imagePrompt,
                 motion: shot.videoPrompt,
-                purpose: shot.arcPhase || shot.title
+                purpose: shot.arcPhase || shot.title,
+                meaning: sceneVO ? sceneVO.meaning : null
             };
         }),
         config: {
