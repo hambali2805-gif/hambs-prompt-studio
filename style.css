@@ -207,7 +207,7 @@ body::before {
   position: fixed;
   inset: 0;
   background: url("./assets/backgrounds/tool-bg.png") center center / cover no-repeat fixed;
-  opacity: 0.16;
+  opacity: 0.30;
   z-index: -2;
   filter: saturate(1.1) contrast(1.05);
   pointer-events: none;
@@ -218,9 +218,9 @@ body::after {
   position: fixed;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(3, 7, 18, 0.78), rgba(3, 7, 18, 0.92)),
-    radial-gradient(circle at 18% 20%, rgba(255, 106, 0, 0.16), transparent 30%),
-    radial-gradient(circle at 82% 12%, rgba(103, 80, 255, 0.14), transparent 26%);
+    linear-gradient(180deg, rgba(3, 7, 18, 0.48), rgba(3, 7, 18, 0.68)),
+    radial-gradient(circle at 18% 20%, rgba(255, 106, 0, 0.22), transparent 32%),
+    radial-gradient(circle at 82% 12%, rgba(103, 80, 255, 0.18), transparent 28%);
   z-index: -1;
   pointer-events: none;
 }
