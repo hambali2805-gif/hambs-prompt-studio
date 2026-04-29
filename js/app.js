@@ -5,7 +5,18 @@
 import { engineConfig, updateConfig, SHOT_COLORS, API_KEY_STORAGE, PERSONAS, ENERGY_LEVELS } from './config.js';
 import { state } from './state.js';
 import { delay, escapeForAttr } from './utils.js';
-import { callAI, saveApiKeyToStorage, testProviderConnection, getApiKey } from './api.js';
+import {
+  callAI,
+  saveApiKeyToStorage,
+  testProviderConnection,
+  getApiKey,
+  getAiProvider,
+  saveAiProviderToStorage,
+  getOpenRouterApiKey,
+  saveOpenRouterApiKeyToStorage,
+  getOpenRouterModel,
+  saveOpenRouterModelToStorage
+} from './api.js';
 import { getImagePlatformLabel, getVideoPlatformLabel } from './promptBuilder.js';
 import { buildContext } from './engine/buildContext.js';
 import { buildGeminiPrompt } from './engine/buildGeminiPrompt.js';
@@ -358,3 +369,87 @@ document.addEventListener('DOMContentLoaded', () => {
   if (restoreSession()) { updateUI(); if (state.currentStep === 3 && state.generatedData) displayMasterPlan(); if (!confirm('Sesi sebelumnya ditemukan. Lanjutkan?')) clearSession(); }
   updateConfirmBtn();
 });
+
+
+function bindAiProviderUi() {
+  if (document.getElementById('aiProviderCard')) return;
+
+  const card = document.createElement('div');
+  card.id = 'aiProviderCard';
+  card.className = 'ai-provider-card';
+  card.innerHTML = `
+    <div class="ai-provider-title">⚡ AI Provider Settings</div>
+
+    <div class="ai-provider-field">
+      <label for="aiProvider">AI Provider</label>
+      <select id="aiProvider">
+        <option value="auto">Auto: Gemini → OpenRouter</option>
+        <option value="gemini">Gemini Only</option>
+        <option value="openrouter">OpenRouter Only</option>
+      </select>
+      <div class="ai-provider-hint">Auto akan coba Gemini dulu, lalu OpenRouter kalau Gemini rate limit.</div>
+    </div>
+
+    <div class="ai-provider-field" id="openRouterKeyWrap">
+      <label for="openRouterApiKey">OpenRouter API Key</label>
+      <input id="openRouterApiKey" type="password" placeholder="sk-or-v1-..." autocomplete="off" />
+      <div class="ai-provider-hint">Disimpan lokal di browser, bukan di GitHub.</div>
+    </div>
+
+    <div class="ai-provider-field" id="openRouterModelWrap">
+      <label for="openRouterModel">OpenRouter Model</label>
+      <input id="openRouterModel" type="text" placeholder="openrouter/free" autocomplete="off" />
+      <div class="ai-provider-hint">Default: openrouter/free</div>
+    </div>
+  `;
+
+  const buttons = Array.from(document.querySelectorAll('button'));
+  const testBtn = buttons.find(btn => (btn.textContent || '').toLowerCase().includes('tes koneksi api'));
+  const anchor = testBtn?.parentElement || document.querySelector('main') || document.body;
+
+  if (testBtn?.parentElement) {
+    testBtn.parentElement.insertAdjacentElement('afterend', card);
+  } else {
+    anchor.prepend(card);
+  }
+
+  const providerEl = document.getElementById('aiProvider');
+  const keyEl = document.getElementById('openRouterApiKey');
+  const modelEl = document.getElementById('openRouterModel');
+  const keyWrap = document.getElementById('openRouterKeyWrap');
+  const modelWrap = document.getElementById('openRouterModelWrap');
+
+  providerEl.value = getAiProvider() || 'auto';
+  keyEl.value = getOpenRouterApiKey(false) || '';
+  modelEl.value = getOpenRouterModel() || 'openrouter/free';
+
+  const sync = () => {
+    const provider = providerEl.value || 'auto';
+    const showOpenRouter = provider === 'auto' || provider === 'openrouter';
+    keyWrap.classList.toggle('hidden', !showOpenRouter);
+    modelWrap.classList.toggle('hidden', !showOpenRouter);
+  };
+
+  providerEl.addEventListener('change', e => {
+    saveAiProviderToStorage(e.target.value);
+    sync();
+  });
+
+  keyEl.addEventListener('change', e => {
+    saveOpenRouterApiKeyToStorage(e.target.value.trim());
+  });
+
+  modelEl.addEventListener('change', e => {
+    const value = e.target.value.trim() || 'openrouter/free';
+    e.target.value = value;
+    saveOpenRouterModelToStorage(value);
+  });
+
+  sync();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bindAiProviderUi);
+} else {
+  bindAiProviderUi();
+}
