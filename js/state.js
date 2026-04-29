@@ -10,6 +10,7 @@ export const state = {
     productDescription: '',
     ugcBackground: 'Scandinavian-Japanese fusion, beige limewash wall, light oak wood slats, pampas grass in ceramic vase, linen textures, clean space.',
     presentationKeywords: 'Direct eye contact, framing: medium close-up, hand gestures, expressive facial expressions, talking to camera, FaceTime-style framing.',
+    presentationType: 'talking_head',
     selectedTone: 'jaksel',
     lensStyle: 'portrait',
     selectedVideoModel: 'veo',
