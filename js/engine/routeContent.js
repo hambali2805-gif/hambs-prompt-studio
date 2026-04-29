@@ -9,12 +9,29 @@ export function parseGeminiPlan(raw){
  try { return JSON.parse(text); } catch { return null; }
 }
 
-export function buildCreativePlan(raw, ctx){
+export function buildCreativePlan(raw, ctx, aiError = ''){
  const ai=parseGeminiPlan(raw);
+
  if(ai && Array.isArray(ai.scenes) && ai.scenes.length){
    return normalizePlan(ai, ctx, false);
  }
- return buildFallbackPlan(ctx);
+
+ const fallback = buildFallbackPlan(ctx);
+
+ fallback.fallbackReason = aiError
+   ? `Gemini API error: ${aiError}`
+   : raw
+     ? 'Gemini response received but failed JSON/schema parsing'
+     : 'Gemini returned empty response or call was skipped';
+
+ fallback.rawGeminiPreview = raw ? String(raw).slice(0, 800) : '';
+
+ console.warn('[HAMBS] Gemini plan failed; fallback used', {
+   reason: fallback.fallbackReason,
+   rawPreview: fallback.rawGeminiPreview
+ });
+
+ return fallback;
 }
 
 function normalizePlan(plan, ctx, fallback){

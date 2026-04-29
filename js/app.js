@@ -105,16 +105,18 @@ async function startAI() {
     statusEl.textContent = '🤖 Asking Gemini for structured creative plan...';
     progEl.style.width = '35%';
     let raw = '';
+    let aiError = '';
     try {
       raw = await callAI(buildGeminiPrompt(ctx));
     } catch (e) {
+      aiError = e?.message || String(e);
       console.warn('Gemini plan failed, using V5 deterministic fallback:', e);
       raw = '';
     }
 
     statusEl.textContent = '🧩 Routing through UGC/Ads + platform split...';
     progEl.style.width = '58%';
-    const plan = buildCreativePlan(raw, ctx);
+    const plan = buildCreativePlan(raw, ctx, aiError);
     await delay(250);
 
     statusEl.textContent = `📸 ${getImagePlatformLabel(ctx.imageModel)} + 🎥 ${getVideoPlatformLabel(ctx.videoModel)} prompts...`;
@@ -136,7 +138,9 @@ async function startAI() {
       engineConfig: { ...engineConfig },
       validation: pack.validation,
       debugContext: pack.debugContext,
-      planSource: plan.source
+      planSource: plan.source,
+      fallbackReason: plan.fallbackReason || '',
+      rawGeminiPreview: plan.rawGeminiPreview || ''
     };
 
     statusEl.textContent = `🎉 Selesai! V5 Clean Engine aktif (${plan.source}).`;
