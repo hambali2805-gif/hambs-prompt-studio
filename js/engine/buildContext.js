@@ -23,7 +23,7 @@ export function buildContext(){
  const gender=getGenderSubject();
  const base={
    engine:'v5-clean-engine', mode, totalScenes:mode==='ugc'?5:10,
-   productName:info.name, productDescription:info.desc, category:product.category,
+   productName:info.name, productDescription:info.desc, requestedCategory:product.requestedCategory, category:product.category, categoryOverridden:product.categoryOverridden, categoryOverrideReason:product.categoryOverrideReason,
    productType:product.productType, productTypeLabel:product.label, parentType:product.parentType, subtype:product.subtype,
    productConfidence:product.confidence, productEvidence:product.evidence, rules:product.rules,
    presentationType, presentation, videoStyleKey, videoStyle,
