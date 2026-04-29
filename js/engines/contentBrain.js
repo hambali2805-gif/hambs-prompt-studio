@@ -166,7 +166,7 @@ function buildMessage(phase, intel, strategy, sensory, proof, useCase) {
         case 'benefit': return `Terjemahkan fitur menjadi manfaat: ${strategy.promise}.`;
         case 'social_proof': return `Bangun trust lewat kebiasaan nyata orang memakai ${p}, bukan klaim kosong.`;
         case 'cta': return `Ajak aksi dengan konteks ${strategy.tension}; CTA harus terasa relevan.`;
-        default: return `${phase}: sampaikan pesan spesifik tentang ${p} dengan detail ${sensory || proof}.`;
+        default: return `Tunjukkan ${p} lewat detail nyata: ${sensory || proof}.`;
     }
 }
 

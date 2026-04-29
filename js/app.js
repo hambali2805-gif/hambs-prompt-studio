@@ -6,7 +6,7 @@ import { engineConfig, updateConfig, TARGET_AD_SHOTS, TARGET_UGC_SHOTS, SHOT_COL
 import { state, updateState } from './state.js';
 import { delay, cleanText, escapeForAttr, splitVO } from './utils.js';
 import { callAI, saveApiKeyToStorage, testProviderConnection, getApiKey } from './api.js';
-import { buildImagePrompt, buildVideoPrompt, buildSeedanceAIPrompt, buildStructuredOutput } from './promptBuilder.js';
+import { buildImagePrompt, buildVideoPrompt, buildSeedanceAIPrompt, buildStructuredOutput, getImagePlatformLabel, getVideoPlatformLabel } from './promptBuilder.js';
 import { buildUGCVoiceoverPrompt, buildUGCScenePrompt } from './engines/ugcEngine.js';
 import { buildAdsVoiceoverPrompt, buildAdsScenePrompt } from './engines/adsEngine.js';
 import { resetPhraseTracker } from './core/antiRepetition.js';
@@ -16,7 +16,8 @@ import { enforceCTA } from './core/ctaBuilder.js';
 import { getCategoryData, validateCategoryOutput, CATEGORY_RULES } from './categoryRules.js';
 import { applyViralEngine, validateViralOutput } from './engines/viralEngine.js';
 import { buildSceneVOPrompt, buildPerSceneVO, buildFallbackPerSceneVO, validateVOSync } from './engines/voEngine.js';
-import { buildContentBrain, getSceneBlueprint } from './engines/contentBrain.js';
+import { getSceneBlueprint } from './engines/contentBrain.js';
+import { buildModeContent } from './modes/index.js';
 import {
     saveSession, restoreSession, clearSession, handleFile, removeUpload,
     updateConfirmBtn, loadProjectList, saveCurrentProject, exportProject,
@@ -82,6 +83,10 @@ function selOpt(btn, grp) {
     if (grp === 'videoModel') {
         state.selectedVideoModel = btn.getAttribute('data-model') || 'veo';
         updateConfig({ platform: state.selectedVideoModel });
+    }
+    if (grp === 'imageModel') {
+        state.selectedImageModel = btn.getAttribute('data-model') || 'banana_pro';
+        updateConfig({ imagePlatform: state.selectedImageModel });
     }
     saveSession();
 }
@@ -224,7 +229,7 @@ async function generateSceneVisuals(info, sceneNum, voSnippet, isUGC, totalScene
         : '';
 
     const blueprintDirective = sceneBlueprint
-        ? `\nCONTENT BRAIN V2 SCENE BLUEPRINT:\n- Function: ${sceneBlueprint.function}\n- Message: ${sceneBlueprint.message}\n- Visual focus: ${sceneBlueprint.visualFocus}\n- Must include: ${sceneBlueprint.mustInclude.join(', ')}\n- Avoid: ${sceneBlueprint.avoid.join(', ')}\nMake the visual specific to this blueprint. Do not create generic premium stock footage.`
+        ? `\nCONTENT BRAIN V4 SCENE BLUEPRINT:\n- Function: ${sceneBlueprint.function}\n- Message: ${sceneBlueprint.message}\n- Visual focus: ${sceneBlueprint.visualFocus}\n- Must include: ${sceneBlueprint.mustInclude.join(', ')}\n- Avoid: ${sceneBlueprint.avoid.join(', ')}\nMake the visual specific to this blueprint. Do not create generic premium stock footage.`
         : '';
 
     let sceneDescription;
@@ -240,7 +245,7 @@ async function generateSceneVisuals(info, sceneNum, voSnippet, isUGC, totalScene
         sceneDescription = buildFallbackScene(info, sceneNum, isUGC, categoryData, sceneBlueprint);
     }
 
-    const imagePrompt = buildImagePrompt(sceneDescription, voSnippet, isUGC, categoryData);
+    const imagePrompt = buildImagePrompt(sceneDescription, voSnippet, isUGC, categoryData, sceneBlueprint);
     let videoPrompt;
 
     if (engineConfig.platform === 'seedance') {
@@ -266,7 +271,14 @@ function buildFallbackScene(info, sceneNum, isUGC, categoryData, sceneBlueprint)
     const gender = getGenderDesc();
 
     if (sceneBlueprint) {
-        return `${sceneBlueprint.visualFocus}, ${sceneBlueprint.message}, ${sceneBlueprint.mustInclude.join(', ')}, authentic product interaction, human reaction, clear scene purpose`;
+        const style = isUGC
+            ? 'handheld phone camera, natural ambient lighting, casual authentic feel'
+            : 'professional lighting, premium cinematic composition';
+        const mustInclude = Array.isArray(sceneBlueprint.mustInclude)
+            ? sceneBlueprint.mustInclude.join(', ')
+            : '';
+
+        return `${gender.subj}, ${sceneBlueprint.visualFocus}, ${mustInclude}, authentic product interaction, natural human reaction, consistent character presence, natural body movement, ${style}`;
     }
 
     if (categoryData) {
@@ -310,7 +322,8 @@ async function startAI() {
 
     updateConfig({
         mode: isUGC ? 'ugc' : 'ads',
-        platform: state.selectedVideoModel
+        platform: state.selectedVideoModel,
+        imagePlatform: state.selectedImageModel || 'banana_pro'
     });
 
     // Central entry point: resolve category and mode
@@ -345,10 +358,10 @@ async function startAI() {
         await delay(500);
 
         // ===== STEP 2: Content Brain V2 (meaning before style) =====
-        statusEl.textContent = '🧠 Building Content Brain V2...';
+        statusEl.textContent = '🧠 Building Content Brain V4...';
         progEl.style.width = '8%';
-        contentBrain = buildContentBrain(info, categoryData, viralContext, isUGC);
-        console.log('Content Brain V2:', contentBrain);
+        contentBrain = buildModeContent({ info, categoryData, viralContext, isUGC });
+        console.log('Content Brain V4:', contentBrain);
         await delay(300);
 
         // ===== STEP 3: Per-scene VO generation (VO Engine V2) =====
@@ -412,7 +425,7 @@ async function startAI() {
             console.warn('VO sync warning:', voSyncValidation.message);
         }
 
-        statusEl.textContent = '🎉 Selesai! Viral Content Engine aktif.';
+        statusEl.textContent = '🎉 Selesai! V4 Mode + Platform Split aktif.';
         progEl.style.width = '100%';
 
         const structured = buildStructuredOutput(vo, shots, info, viralContext, sceneVOs);
@@ -460,7 +473,8 @@ function displayMasterPlan() {
     engineInfo.className = 'engine-info-badge';
     engineInfo.innerHTML = `
         <span class="engine-mode ${engineConfig.mode}">${engineConfig.mode === 'ugc' ? '📱 UGC Realism' : '🎥 Ads Cinematic'}</span>
-        <span class="engine-platform">${engineConfig.platform === 'seedance' ? 'Seedance 2.0' : 'Veo 3.1'}</span>
+        <span class="engine-platform">📸 ${getImagePlatformLabel()}</span>
+        <span class="engine-platform">🎥 ${getVideoPlatformLabel()}</span>
         <span class="engine-persona">${PERSONAS[engineConfig.persona]?.icon || '👯'} ${PERSONAS[engineConfig.persona]?.label || 'Best Friend'}</span>
         <span class="engine-energy">${ENERGY_LEVELS[engineConfig.energy]?.icon || '⚡'} ${ENERGY_LEVELS[engineConfig.energy]?.label || 'Balanced'}</span>
         <span class="engine-realism">Realism: ${engineConfig.realism}%</span>
@@ -538,12 +552,12 @@ function displayMasterPlan() {
                     ${imperfectionHtml}
                 </div>
                 <div class="shot-prompt-section">
-                    <div class="shot-prompt-label">📸 IMAGE PROMPT</div>
+                    <div class="shot-prompt-label">📸 IMAGE PROMPT (${getImagePlatformLabel()})</div>
                     <div class="shot-prompt-text">${shot.imagePrompt || ''}</div>
                     <button class="btn-copy" onclick="window.__copyToClipboard(this, '${escapeForAttr(shot.imagePrompt)}')">📋 Copy</button>
                 </div>
                 <div class="shot-prompt-section">
-                    <div class="shot-prompt-label">🎥 VIDEO PROMPT (${engineConfig.platform === 'seedance' ? 'Seedance 2.0' : 'Veo 3.1'})</div>
+                    <div class="shot-prompt-label">🎥 VIDEO PROMPT (${getVideoPlatformLabel()})</div>
                     <div class="shot-prompt-text">${shot.videoPrompt || ''}</div>
                     <button class="btn-copy" onclick="window.__copyToClipboard(this, '${escapeForAttr(shot.videoPrompt)}')">📋 Copy</button>
                 </div>
@@ -631,9 +645,10 @@ function downloadAllAssets() {
     const cfg = state.generatedData.engineConfig || engineConfig;
     const vc = state.generatedData.viralContext;
     const sceneVOs = state.generatedData.sceneVOs;
-    let content = `HAMBS PRODUCTION — MASTER PROMPT PACK (VIRAL CONTENT ENGINE v1)\n`;
+    let content = `HAMBS PRODUCTION — MASTER PROMPT PACK (V4 MODE PLATFORM ENGINE)\n`;
     content += `Mode: ${state.generatedData.contentStyle} (${cfg.mode === 'ugc' ? 'Realism' : 'Cinematic'})\n`;
-    content += `Platform: ${cfg.platform === 'seedance' ? 'Seedance 2.0' : 'Veo 3.1'}\n`;
+    content += `Image Platform: ${getImagePlatformLabel(cfg.imagePlatform || state.selectedImageModel)}\n`;
+    content += `Video Platform: ${getVideoPlatformLabel(cfg.platform)}\n`;
     content += `Persona: ${PERSONAS[cfg.persona]?.label || cfg.persona}\n`;
     content += `Energy: ${cfg.energy}\n`;
     content += `Realism: ${cfg.realism}%\n`;
@@ -723,6 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('#styleGrid .option-btn').forEach(b => b.addEventListener('click', function () { selOpt(this, 'vid'); }));
     document.querySelectorAll('#toneGrid .option-btn').forEach(b => b.addEventListener('click', function () { selOpt(this, 'tone'); }));
     document.querySelectorAll('#lensGrid .option-btn').forEach(b => b.addEventListener('click', function () { selOpt(this, 'lens'); }));
+    document.querySelectorAll('#imageModelGrid .option-btn').forEach(b => b.addEventListener('click', function () { selOpt(this, 'imageModel'); }));
     document.querySelectorAll('#videoModelGrid .option-btn').forEach(b => b.addEventListener('click', function () { selOpt(this, 'videoModel'); }));
     document.querySelectorAll('#langGrid .option-btn').forEach(b => b.addEventListener('click', function () { selOpt(this, 'lang'); }));
 

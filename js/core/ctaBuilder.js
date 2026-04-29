@@ -5,35 +5,27 @@ import { engineConfig, PERSONAS } from '../config.js';
 
 const URGENCY_PHRASES = {
     ID: [
-        'Stok terbatas, jangan sampai kehabisan!',
-        'Promo ini cuma hari ini!',
-        'Buruan sebelum sold out!',
-        'Cuma tersisa sedikit lagi!',
-        'Flash sale — waktu terbatas!',
-        'Besok harga naik, sekarang atau nyesel!',
-        'Link di bio, tapi cepetan ya!',
-        'Diskon gede-gedean cuma sampe jam 12!'
+        'Cek detail produknya saat momennya relevan.',
+        'Simpan dulu supaya mudah ditemukan lagi.',
+        'Pilih saat sesuai dengan kebutuhan harian Anda.',
+        'Lihat detailnya sebelum menentukan pilihan.'
     ],
     EN: [
-        'Limited stock — act now!',
-        'This offer ends today!',
-        'Grab yours before it sells out!',
-        'Only a few left!',
-        'Flash sale — limited time only!',
-        'Price goes up tomorrow — don\'t miss out!',
-        'Link in bio, but hurry!',
-        'Massive discount ends at midnight!'
+        'Small details can make an everyday moment feel better.',
+        'Choose what fits your everyday need.',
+        'Make room for a simple moment that feels more comfortable.',
+        'When the moment is right, this product is easy to remember.'
     ]
 };
 
 const EMOTIONAL_TRIGGERS = {
     ID: [
-        'Lo layak dapetin yang terbaik.',
-        'Karena hidup lo worth it.',
-        'Jangan settle sama yang biasa aja.',
-        'Lo pantas punya ini.',
-        'Ini game changer, beneran.',
-        'Hidup terlalu singkat buat ragu-ragu.'
+        
+        'Detail kecil bisa membuat momen terasa lebih baik.',
+        'Pilih produk yang sesuai dengan kebutuhan harian.',
+        'Beri ruang untuk momen sederhana yang lebih nyaman.',
+        'Saat momennya tepat, produk ini mudah diingat.'
+
     ],
     EN: [
         'You deserve the best.',
@@ -49,7 +41,6 @@ const CLEAR_ACTIONS = {
     ID: [
         'Klik link di bio sekarang!',
         'Add to cart sekarang juga!',
-        'Checkout sebelum kehabisan!',
         'Langsung order via link di bio!',
         'Tap link — beli sekarang!',
         'Save dulu, biar gak lupa!'
@@ -57,7 +48,6 @@ const CLEAR_ACTIONS = {
     EN: [
         'Click the link in bio now!',
         'Add to cart right now!',
-        'Check out before it\'s gone!',
         'Order directly via the link in bio!',
         'Tap the link — buy now!',
         'Save this so you don\'t forget!'
@@ -72,28 +62,45 @@ export function buildCTADirective(lang) {
     const l = lang === 'EN' ? 'EN' : 'ID';
     const persona = PERSONAS[engineConfig.persona] || PERSONAS.best_friend;
 
+    if (engineConfig.mode === 'ugc') {
+        return {
+            urgency: '',
+            emotional: '',
+            action: l === 'EN' ? 'Try it in a real everyday moment.' : 'Coba pas momennya lagi cocok.',
+            voiceStyle: persona.voiceStyle,
+            instruction: `CTA UGC: harus terasa natural seperti rekomendasi teman, bukan hard sell.
+- Jangan pakai scarcity palsu seperti stok terbatas, flash sale, checkout sebelum kehabisan.
+- Boleh ada ajakan ringan: coba, save, atau inget produk ini pas situasinya relevan.
+- Maksimal 1 kalimat, tetap manusiawi.
+Persona: ${persona.label} — ${persona.voiceStyle}`
+        };
+    }
+
     return {
         urgency: pickRandom(URGENCY_PHRASES[l]),
         emotional: pickRandom(EMOTIONAL_TRIGGERS[l]),
         action: pickRandom(CLEAR_ACTIONS[l]),
         voiceStyle: persona.voiceStyle,
-        instruction: `WAJIB: Scene CTA harus mengandung 3 elemen:
-1. URGENCY: Beri tekanan waktu/stok terbatas
-2. EMOTIONAL TRIGGER: Sentuh emosi personal viewer
-3. CLEAR ACTION: Instruksi spesifik (klik, beli, checkout)
+        instruction: `CTA IKLAN: beri alasan aksi yang jelas, tapi tetap relevan dengan produk dan situasi.
+- Hindari klaim stok/promo palsu kalau tidak ada input dari user.
+- Gunakan CTA spesifik: coba, beli, save, atau cek link sesuai konteks.
 Persona: ${persona.label} — ${persona.voiceStyle}`
     };
 }
 
 export function enforceCTA(voText, lang) {
     const l = lang === 'EN' ? 'EN' : 'ID';
-    const hasUrgency = /terbatas|habis|sold out|cuma|limited|hurry|ends|last/i.test(voText);
-    const hasAction = /link|bio|klik|click|beli|buy|checkout|order|add to cart|tap|save/i.test(voText);
-    const hasEmotion = /layak|worth|deserve|pantas|terbaik|best|game changer/i.test(voText);
 
+    if (engineConfig.mode === 'ugc') {
+        const hasSoftAction = /coba|save|simpan|ingat|cek|try|remember|keep|link|bio/i.test(voText);
+        if (hasSoftAction) return voText;
+        return voText + (l === 'EN'
+            ? ' Try it when the moment feels right.'
+            : ' Coba pas lagi butuh yang simpel dan comforting.');
+    }
+
+    const hasAction = /link|bio|klik|click|beli|buy|checkout|order|add to cart|tap|save|coba|try/i.test(voText);
     let enhanced = voText;
-    if (!hasUrgency) enhanced += ' ' + pickRandom(URGENCY_PHRASES[l]);
-    if (!hasAction) enhanced += ' ' + pickRandom(CLEAR_ACTIONS[l]);
-    if (!hasEmotion) enhanced += ' ' + pickRandom(EMOTIONAL_TRIGGERS[l]);
+    if (!hasAction) enhanced += ' ' + (l === 'EN' ? 'Check it out when you need it.' : 'Cek produknya kalau momennya lagi cocok.');
     return enhanced;
 }

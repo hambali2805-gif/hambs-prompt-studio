@@ -13,6 +13,7 @@ export const state = {
     selectedTone: 'jaksel',
     lensStyle: 'portrait',
     selectedVideoModel: 'veo',
+    selectedImageModel: 'banana_pro',
     customNegativePrompt: '',
     apiKey: '',
     generatedData: null,
