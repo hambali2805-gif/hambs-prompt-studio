@@ -10,6 +10,7 @@ import {
   saveApiKeyToStorage,
   testProviderConnection,
   getApiKey,
+  testOpenRouterConnection,
   getAiProvider,
   saveAiProviderToStorage,
   getOpenRouterApiKey,
@@ -401,6 +402,11 @@ function bindAiProviderUi() {
       <input id="openRouterModel" type="text" placeholder="openrouter/free" autocomplete="off" />
       <div class="ai-provider-hint">Default: openrouter/free</div>
     </div>
+
+    <button id="testOpenRouterApiBtn" type="button" class="ai-provider-test-btn">
+      🔌 Tes OpenRouter API
+    </button>
+    <div id="openRouterTestResult" class="ai-provider-test-result"></div>
   `;
 
   const buttons = Array.from(document.querySelectorAll('button'));
@@ -418,6 +424,8 @@ function bindAiProviderUi() {
   const modelEl = document.getElementById('openRouterModel');
   const keyWrap = document.getElementById('openRouterKeyWrap');
   const modelWrap = document.getElementById('openRouterModelWrap');
+  const testOpenRouterBtn = document.getElementById('testOpenRouterApiBtn');
+  const openRouterTestResult = document.getElementById('openRouterTestResult');
 
   providerEl.value = getAiProvider() || 'auto';
   keyEl.value = getOpenRouterApiKey(false) || '';
@@ -444,6 +452,38 @@ function bindAiProviderUi() {
     e.target.value = value;
     saveOpenRouterModelToStorage(value);
   });
+
+
+  if (testOpenRouterBtn) {
+    testOpenRouterBtn.addEventListener('click', async () => {
+      try {
+        saveOpenRouterApiKeyToStorage(keyEl.value.trim());
+        saveOpenRouterModelToStorage((modelEl.value.trim() || 'openrouter/free'));
+
+        testOpenRouterBtn.disabled = true;
+        testOpenRouterBtn.textContent = '⏳ Mengetes OpenRouter...';
+        if (openRouterTestResult) {
+          openRouterTestResult.textContent = 'Menghubungi OpenRouter...';
+          openRouterTestResult.className = 'ai-provider-test-result';
+        }
+
+        const result = await testOpenRouterConnection();
+
+        if (openRouterTestResult) {
+          openRouterTestResult.textContent = `✅ OpenRouter OK — ${result.model}`;
+          openRouterTestResult.className = 'ai-provider-test-result success';
+        }
+      } catch (e) {
+        if (openRouterTestResult) {
+          openRouterTestResult.textContent = `❌ ${e?.message || String(e)}`;
+          openRouterTestResult.className = 'ai-provider-test-result error';
+        }
+      } finally {
+        testOpenRouterBtn.disabled = false;
+        testOpenRouterBtn.textContent = '🔌 Tes OpenRouter API';
+      }
+    });
+  }
 
   sync();
 }

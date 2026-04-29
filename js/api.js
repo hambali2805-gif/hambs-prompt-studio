@@ -316,6 +316,35 @@ export async function testProviderConnection() {
     }
 }
 
+
+export async function testOpenRouterConnection() {
+    const key = getOpenRouterApiKey(true);
+    if (!key) throw new Error('OpenRouter API Key belum diisi.');
+
+    const model = getOpenRouterModel();
+
+    const payload = {
+        model,
+        messages: [
+            {
+                role: 'user',
+                content: 'Reply exactly with: OK'
+            }
+        ],
+        temperature: 0,
+        max_tokens: 10
+    };
+
+    const text = await requestOpenRouterWithRetry(payload, key, 'connection-test');
+
+    return {
+        ok: true,
+        provider: 'openrouter',
+        model,
+        text
+    };
+}
+
 export async function callAI(prompt) {
     const provider = getAiProvider();
 
