@@ -1,18 +1,61 @@
-import { state } from '../state.js?v=202604300940';
-import { engineConfig } from '../config.js?v=202604300940';
-import { detectProductType } from '../intelligence/productTypeDetector.js?v=202604300940';
-import { inferPresentationType, getPresentationProfile } from '../intelligence/presentationProfiles.js?v=202604300940';
-import { normalizeVideoStyle, getVideoStyleProfile } from '../intelligence/videoStyleProfiles.js?v=202604300940';
-import { getPersonaProfile } from '../intelligence/personaProfiles.js?v=202604300940';
-import { getSpeechStyleProfile } from '../intelligence/speechStyleProfiles.js?v=202604300940';
-import { adaptBackgroundForContext } from '../intelligence/backgroundCompatibility.js?v=202604300940';
-import { getPlatformProfile, normalizeTargetPlatform } from '../intelligence/platformProfiles.js?v=202604300940';
-import { getImageEngineProfile, getVideoEngineProfile } from '../intelligence/engineProfiles.js?v=202604300940';
-import { buildCreativeBrief } from './buildCreativeBrief.js?v=202604300940';
-import { buildReferenceControl } from './buildReferenceControl.js?v=202604300940';
-import { getGenderSubject } from '../shared/subjectUtils.js?v=202604300940';
-import { buildReferenceDirectives } from '../shared/referenceHandler.js?v=202604300940';
-import { buildNegativePrompt } from '../shared/negativePrompt.js?v=202604300940';
+import { state } from '../state.js?v=202604300959';
+import { engineConfig } from '../config.js?v=202604300959';
+import { detectProductType } from '../intelligence/productTypeDetector.js?v=202604300959';
+import { inferPresentationType, getPresentationProfile } from '../intelligence/presentationProfiles.js?v=202604300959';
+import { normalizeVideoStyle, getVideoStyleProfile } from '../intelligence/videoStyleProfiles.js?v=202604300959';
+import { getPersonaProfile } from '../intelligence/personaProfiles.js?v=202604300959';
+import { getSpeechStyleProfile } from '../intelligence/speechStyleProfiles.js?v=202604300959';
+import { adaptBackgroundForContext } from '../intelligence/backgroundCompatibility.js?v=202604300959';
+import { getPlatformProfile, normalizeTargetPlatform } from '../intelligence/platformProfiles.js?v=202604300959';
+import { getImageEngineProfile, getVideoEngineProfile } from '../intelligence/engineProfiles.js?v=202604300959';
+import { buildCreativeBrief } from './buildCreativeBrief.js?v=202604300959';
+import { buildReferenceControl } from './buildReferenceControl.js?v=202604300959';
+import { getGenderSubject } from '../shared/subjectUtils.js?v=202604300959';
+import { buildReferenceDirectives } from '../shared/referenceHandler.js?v=202604300959';
+import { buildNegativePrompt } from '../shared/negativePrompt.js?v=202604300959';
+
+
+function applyCategoryPresentationOverride(ctx) {
+  const cat = String(ctx.category || '').toUpperCase();
+  const type = String(ctx.productType || '').toLowerCase();
+  const isFood = ctx.parentType === 'food' || cat.includes('MAKANAN') || type.includes('noodle') || type.includes('food');
+
+  if (!isFood) return ctx;
+
+  ctx.presentation = {
+    ...(ctx.presentation || {}),
+    label: 'Food Taste Demo / Sensory Proof',
+    purpose: 'show real preparation, aroma, texture, steam, serving moment, and first bite reaction',
+    keywords: [
+      'open packaging',
+      'prepare food',
+      'pour seasoning',
+      'stir food',
+      'steam visible',
+      'texture close-up',
+      'aroma reaction',
+      'first bite reaction',
+      'serving moment'
+    ],
+    motionRules: [
+      'one food-preparation action per scene',
+      'keep packaging accurate',
+      'keep serving/result texture consistent',
+      'show steam, texture, aroma reaction, or first bite only when phase allows it'
+    ],
+    avoid: [
+      'skincare before-after framing',
+      'rubbing cream on skin',
+      'efficacy language',
+      'medical result wording',
+      'device activation demo'
+    ]
+  };
+
+  ctx.presentationType = ctx.presentationType || 'food_taste_demo';
+  ctx.presentationKeywords = 'taste demo, aroma proof, texture close-up, steam/serving moment, first bite reaction';
+  return ctx;
+}
 
 function resolveSceneCount(mode, duration = '15s', sceneCount = 'auto') {
   const explicit = parseInt(sceneCount, 10);
@@ -95,6 +138,7 @@ export function buildContext(){
    rawBackground:state.ugcBackground||''
  };
  base.background=adaptBackgroundForContext(base, state.ugcBackground||'');
+ base=applyCategoryPresentationOverride(base);
  base.referenceDirectives=buildReferenceDirectives(base);
  base.referenceControl=buildReferenceControl(base, state);
  if (base.referenceControl?.characterControl?.subjectPhrase && base.referenceControl.characterControl.mode !== 'auto') {

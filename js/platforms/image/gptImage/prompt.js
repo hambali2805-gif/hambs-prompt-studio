@@ -10,7 +10,7 @@ export function buildGptImagePrompt(ctx,scene,index){
   `Main still moment: ${scene.mainAction}. Emotion: ${scene.emotion}.`,
   `Camera/framing: ${scene.cameraDirection || ctx.platformProfile?.camera || ctx.videoStyle.camera}.`,
   `The image must feel human and specific to ${ctx.productTypeLabel}, not generic stock photography.`,
-  `Product: ${ctx.productName}; visibility: ${ctx.productVisibility}; preserve reference details: ${list(ctx.rules.referenceFocus)}.`,
+  `Product: ${ctx.productName}; visibility: ${ctx.referenceControl?.sceneProductMap?.[String(index+1)]?.visibility || ctx.productVisibility}; preserve reference details: ${list(ctx.rules.referenceFocus)}.`,
   `Image engine rules: ${list(engine.promptRules)}.`,
   `Character/reference instruction: ${ctx.referenceDirectives.summary}.`,
   `Character anchor: ${ctx.referenceControl?.characterAnchor || 'keep character continuity if present'}.`,

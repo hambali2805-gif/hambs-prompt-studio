@@ -27,6 +27,6 @@ export function buildSeedancePrompt(ctx,scene,index){
   `Engine rules: ${list(engine.promptRules)}.`,
   `Presentation: ${ctx.presentation.label}; motion rules: ${list(ctx.presentation.motionRules)}.`,
   `Product reference focus: ${list(ctx.rules.referenceFocus)}. Must include: ${list(scene.mustInclude)}.`,
-  `Negative: ${ctx.negativePrompt}. ${list(engine.negativeRules)}.`
+  `Negative: ${ctx.negativePrompt}.`
  ].join(' ');
 }

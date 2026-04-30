@@ -7,7 +7,7 @@ export function buildBananaProPrompt(ctx,scene,index){
   `${mode}, vertical social image for ${ctx.platformProfile?.label || 'social platform'}. Scene ${index+1}/${ctx.totalScenes}: ${scene.title}.`,
   `Visual summary: ${scene.visualSummary || scene.description}`,
   `Main still action: ${scene.mainAction}. Freeze the clearest moment; no video or motion instruction.`,
-  `Product: ${ctx.productName}, type: ${ctx.productTypeLabel}. Product visibility: ${ctx.productVisibility}. Preserve: ${list(ctx.rules.referenceFocus)}.`,
+  `Product: ${ctx.productName}, type: ${ctx.productTypeLabel}. Product visibility: ${ctx.referenceControl?.sceneProductMap?.[String(index+1)]?.visibility || ctx.productVisibility}. Preserve: ${list(ctx.rules.referenceFocus)}.`,
   `Banana Pro role: ${engine.role || 'reference-accurate product still'}. Rules: ${list(engine.promptRules)}.`,
   `Composition: ${ctx.platformProfile?.visual || ctx.videoStyle.visual}; camera/lens: ${ctx.cameraStyle || ctx.lensStyle}; clear product visibility, human interaction, authentic but tidy.`,
   `Must include: ${list(scene.mustInclude)}.`,

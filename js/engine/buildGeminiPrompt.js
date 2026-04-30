@@ -1,4 +1,4 @@
-import { buildRoleplayBlock } from './roleplayProfiles.js?v=202604300940';
+import { buildRoleplayBlock } from './roleplayProfiles.js?v=202604300959';
 
 function list(v, fallback = 'none') {
   return Array.isArray(v) && v.length ? v.join(' | ') : fallback;
@@ -35,6 +35,14 @@ Use these as semantic material, not copy-paste lines.
 
 REFERENCE HANDLING
 ${ctx.referenceDirectives.summary}
+
+ANTI-NONSENSE LANGUAGE RULES
+- Never use malformed Indonesian words, nonsense words, random poetic nouns, or mistranslated phrases.
+- Use simple, common, natural Indonesian verbs for visible actions.
+- Do not use strange words such as kaolin, tangan kubur, bumbu nyesal, mencemput, memeria, nggakut, menyinggung piring, or menceritakan bumbu.
+- For food content, use concrete actions only: ambil produk, buka bungkus, rebus mie, tuang bumbu, aduk mie, lihat uap, cium aroma, suapan pertama, senyum puas.
+- Emotion labels must be common words: relatable, penasaran, lapar, senang, puas, hangat, excited, yakin, natural.
+- If unsure, choose simpler wording.
 
 VOICEOVER RULES
 - Write VO like a real creator, not a template.
@@ -90,6 +98,7 @@ Silently check and fix:
 6. Does VO sound natural for ${ctx.language} and ${ctx.speech.label}?
 7. Are platform rules and CTA type respected?
 8. Are negative/safety rules respected?
+9. Does every Indonesian phrase sound natural, simple, and free from nonsense words?
 
 Return valid JSON only.`;
 }

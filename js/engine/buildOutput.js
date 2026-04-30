@@ -1,6 +1,6 @@
-import { buildImagePromptByPlatform } from '../platforms/image/index.js?v=202604300940';
-import { buildVideoPromptByPlatform } from '../platforms/video/index.js?v=202604300940';
-import { validateSceneSet } from '../shared/validationUtils.js?v=202604300940';
+import { buildImagePromptByPlatform } from '../platforms/image/index.js?v=202604300959';
+import { buildVideoPromptByPlatform } from '../platforms/video/index.js?v=202604300959';
+import { validateSceneSet } from '../shared/validationUtils.js?v=202604300959';
 
 export function buildOutputPack(plan, ctx){
  const sceneVOs=plan.scenes.map((s,i)=>({

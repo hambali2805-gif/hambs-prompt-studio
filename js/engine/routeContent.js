@@ -1,5 +1,5 @@
-import { stripMarkdownFences, compact } from '../shared/textCleaner.js?v=202604300940';
-import { ensureSubject } from '../shared/subjectUtils.js?v=202604300940';
+import { stripMarkdownFences, compact } from '../shared/textCleaner.js?v=202604300959';
+import { ensureSubject } from '../shared/subjectUtils.js?v=202604300959';
 
 export function parseGeminiPlan(raw){
  if(!raw) return null;
@@ -27,6 +27,67 @@ export function buildCreativePlan(raw, ctx, aiError = '', aiSource = 'ai'){
  return fallback;
 }
 
+
+function sanitizeCreativeText(value, field = 'text', ctx = {}) {
+  let t = String(value || '').trim();
+  if (!t) return '';
+
+  const replacements = [
+    [/tangan\s+kubur/gi, 'tangan mengambil produk'],
+    [/kaolin/gi, 'dapur'],
+    [/bumbu\s+nyesal/gi, 'bumbu harum'],
+    [/mencemput/gi, 'mengambil'],
+    [/menceritakan\s+bumbu/gi, 'menuang bumbu'],
+    [/menyinggung\s+piring/gi, 'menunjukkan piring'],
+    [/memeria/gi, 'ceria'],
+    [/nggakut/gi, 'penasaran'],
+    [/cheese-like\s+smile/gi, 'senyum natural'],
+    [/daripara/gi, 'daripada'],
+    [/rebek/gi, 'ribet'],
+    [/menyentuh\s+aroma/gi, 'mencium aroma'],
+    [/bumbu\s+sedih/gi, 'bumbu harum'],
+    [/piring\s+nggakut/gi, 'piring mie'],
+    [/mie\s+nyesal/gi, 'mie berbumbu']
+  ];
+
+  replacements.forEach(([from, to]) => {
+    t = t.replace(from, to);
+  });
+
+  t = t.replace(/\s+/g, ' ').trim();
+
+  if (field === 'emotion') {
+    const lower = t.toLowerCase();
+    const allowed = ['relatable','penasaran','lapar','senang','puas','hangat','excited','yakin','natural','ceria','fokus','nyaman','friendly','curious','happy','warm','confident'];
+    if (!allowed.some(word => lower.includes(word))) {
+      if (lower.length > 18 || /[^a-zA-ZÀ-ÿ\s-]/.test(lower)) return 'natural';
+    }
+  }
+
+  return t;
+}
+
+function guardSceneAction(action, phase, ctx, index) {
+  const a = sanitizeCreativeText(action, 'mainAction', ctx);
+  const p = String(phase || '').toLowerCase();
+  const isFood = ctx?.parentType === 'food' || String(ctx?.category || '').toUpperCase().includes('MAKANAN') || String(ctx?.productType || '').includes('noodle');
+
+  if (!isFood) return a;
+
+  const demoWords = /(rebus|boil|tuang bumbu|pour seasoning|aduk|stir|suapan|first bite|makan|eat|angkat mie|lift noodles)/i;
+
+  if ((p.includes('hook') || index === 0) && demoWords.test(a)) {
+    return 'creator looks at the camera, gestures to hunger, and notices the product nearby without starting the cooking demo';
+  }
+
+  if ((p.includes('pain') || p.includes('problem') || index === 1) && /(aduk|stir|suapan|first bite|makan|eat)/i.test(a)) {
+    return 'hand reaches for the product packaging and brings it closer with the label visible';
+  }
+
+  return a;
+}
+
+
 function normalizeArray(v, fallback = []) {
   return Array.isArray(v) && v.length ? v.filter(Boolean).map(x => String(x).trim()).filter(Boolean) : fallback;
 }
@@ -37,19 +98,21 @@ function normalizePlan(plan, ctx, fallback, aiSource = 'ai'){
    const beat = sceneBeat(ctx,i);
    const s=plan.scenes[i] || fallbackScene(ctx,i);
 
-   const vo = localizeVOText(compact(s.vo)||fallbackVO(ctx,i), ctx);
-   const visualSummary = compact(s.visualSummary || s.description) || fallbackDescription(ctx,i);
-   const mainAction = compact(s.mainAction || s.action) || beat.action || pick(ctx.rules.actions, i) || 'natural product interaction';
-   const cameraDirection = compact(s.cameraDirection) || beat.cameraDirection || ctx.platformProfile?.camera || ctx.videoStyle?.camera || 'vertical social video framing';
-   const continuity = compact(s.continuity) || beat.continuity || `Keep the same ${ctx.gender.subj}, product scale, background logic, and product identity.`;
+   const phase = sanitizeCreativeText(compact(s.phase)||beat.phase||defaultPhase(ctx,i), 'phase', ctx);
+   const vo = localizeVOText(sanitizeCreativeText(compact(s.vo)||fallbackVO(ctx,i), 'vo', ctx), ctx);
+   const visualSummary = sanitizeCreativeText(compact(s.visualSummary || s.description) || fallbackDescription(ctx,i), 'visualSummary', ctx);
+   const rawMainAction = sanitizeCreativeText(compact(s.mainAction || s.action) || beat.action || pick(ctx.rules.actions, i) || 'natural product interaction', 'mainAction', ctx);
+   const mainAction = guardSceneAction(rawMainAction, phase, ctx, i);
+   const cameraDirection = sanitizeCreativeText(compact(s.cameraDirection) || beat.cameraDirection || ctx.platformProfile?.camera || ctx.videoStyle?.camera || 'vertical social video framing', 'cameraDirection', ctx);
+   const continuity = sanitizeCreativeText(compact(s.continuity) || beat.continuity || `Keep the same ${ctx.gender.subj}, product scale, background logic, and product identity.`, 'continuity', ctx);
 
    scenes.push({
     number: Number(s.number) || i + 1,
-    title: compact(s.title)||beat.title||defaultTitle(ctx,i),
-    phase: compact(s.phase)||beat.phase||defaultPhase(ctx,i),
+    title: sanitizeCreativeText(compact(s.title)||beat.title||defaultTitle(ctx,i), 'title', ctx),
+    phase,
     vo,
     duration: compact(s.duration)|| (ctx.mode==='ugc'?'2-4s':'2-3s'),
-    emotion: compact(s.emotion)||beat.emotion||defaultEmotion(ctx,i),
+    emotion: sanitizeCreativeText(compact(s.emotion)||beat.emotion||defaultEmotion(ctx,i), 'emotion', ctx),
     visualSummary,
     mainAction,
     cameraDirection,
@@ -57,7 +120,7 @@ function normalizePlan(plan, ctx, fallback, aiSource = 'ai'){
     description: ensureSubject(visualSummary, ctx.gender.subj),
     mustInclude: normalizeArray(s.mustInclude, beat.mustInclude),
     avoid: normalizeArray(s.avoid, ctx.rules.avoid),
-    meaning: compact(s.meaning)||beat.meaning||'Move the viewer through the story with product-specific proof.'
+    meaning: sanitizeCreativeText(compact(s.meaning)||beat.meaning||'Move the viewer through the story with product-specific proof.', 'meaning', ctx)
    });
  }
 

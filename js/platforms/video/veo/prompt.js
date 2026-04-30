@@ -15,7 +15,7 @@ export function buildVeoPrompt(ctx,scene,index){
   `Background continuity: ${ctx.referenceControl?.backgroundAnchor || 'keep same background logic'}.`,
   `Product reference continuity: ${ctx.referenceControl?.sceneBlocks?.[String(index+1)] || 'auto product reference continuity'}.`,
   `Product type: ${ctx.productTypeLabel}; visible proof must include ${list(scene.mustInclude)}.`,
-  `Background: ${ctx.background.directive}. Product visibility: ${ctx.productVisibility}.`,
-  `Avoid: ${ctx.negativePrompt}. ${list(engine.negativeRules)}. No fake claims, no extra limbs, no product redesign.`
+  `Background: ${ctx.background.directive}. Product visibility: ${ctx.referenceControl?.sceneProductMap?.[String(index+1)]?.visibility || ctx.productVisibility}.`,
+  `Avoid: ${ctx.negativePrompt}. No fake claims, no extra limbs, no product redesign.`
  ].join(' ');
 }

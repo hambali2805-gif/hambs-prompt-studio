@@ -34,6 +34,14 @@ function clean(x, fallback = '') {
   return String(x ?? fallback).trim();
 }
 
+function firstNonEmpty(...values) {
+  for (const value of values) {
+    const cleaned = clean(value);
+    if (cleaned) return cleaned;
+  }
+  return '';
+}
+
 function labelRole(role) {
   return PRODUCT_REF_ROLE_LABELS[role] || PRODUCT_REF_ROLE_LABELS.auto;
 }
@@ -262,7 +270,7 @@ function buildBackgroundControl(ctx, state) {
   const mode = clean(state.backgroundMode, 'fixed');
   const lock = clean(state.backgroundLock, 'strong');
   const label = clean(state.backgroundLabel, 'Main Background');
-  const description = clean(state.backgroundDescription, ctx.rawBackground || ctx.background?.directive || 'auto by category');
+  const description = firstNonEmpty(state.backgroundDescription, ctx.rawBackground, ctx.background?.directive, 'auto by category');
   const lightingLock = clean(state.lightingLock, 'same_mood');
   const continuityStrength = clean(state.continuityStrength, 'strong');
 
