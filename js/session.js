@@ -1,8 +1,8 @@
 // ==================== SESSION & PROJECT MANAGEMENT ====================
-import { SESSION_KEY, PROJECTS_KEY, API_KEY_STORAGE, engineConfig, updateConfig } from './config.js?v=202604300959';
-import { state, updateState } from './state.js?v=202604300959';
-import { compressImage } from './utils.js?v=202604300959';
-import { inferPresentationType } from './intelligence/presentationProfiles.js?v=202604300959';
+import { SESSION_KEY, PROJECTS_KEY, API_KEY_STORAGE, engineConfig, updateConfig } from './config.js?v=202604301007';
+import { state, updateState } from './state.js?v=202604301007';
+import { compressImage } from './utils.js?v=202604301007';
+import { inferPresentationType } from './intelligence/presentationProfiles.js?v=202604301007';
 
 export function saveSession() {
     try {
