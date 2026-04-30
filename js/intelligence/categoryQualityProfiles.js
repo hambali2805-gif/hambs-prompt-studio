@@ -290,8 +290,114 @@ export function cleanNegativePromptByCategory(ctx = {}, negativePrompt = '') {
 
   items = items.filter(item => !profile.negativeRemove.some(pattern => rxMatch(pattern, item)));
 
+  const activeKey = normalizeCategoryQualityKey(ctx);
+  const crossDomainBans = {
+    food: ['fashion','high-fashion','skincare','skin before-after','rubbing cream','device activation','fake UI'],
+    drink: ['fashion','high-fashion','skincare','skin before-after','rubbing cream','boil noodles','pour seasoning','chewing food','fake UI'],
+    skincare: ['boil noodles','food steam','eating product','fashion runway','device activation','fake UI'],
+    fashion: ['boil noodles','food steam','skincare before-after','rubbing cream','device activation','fake UI'],
+    electronics: ['boil noodles','food steam','skincare before-after','rubbing cream','fashion runway','fabric fit'],
+    home_living: ['boil noodles','skincare before-after','fashion runway','fake UI'],
+    generic_product: []
+  };
+
+  const domainBanList = crossDomainBans[activeKey] || [];
+  items = items.filter(item => !domainBanList.some(bad => item.toLowerCase().includes(bad.toLowerCase())));
+
   return [...new Set([...items, ...profile.negativeAdd].filter(Boolean))].join(', ');
 }
+
+
+function activeQualityKey(ctx = {}) {
+  return normalizeCategoryQualityKey(ctx);
+}
+
+function applyGlobalOutputCleanup(text = '', field = 'text', ctx = {}) {
+  let t = String(text || '').trim();
+  const key = activeQualityKey(ctx);
+
+  const universal = [
+    [/siap\s+ngunyah\s+rasa\s+segarnya/gi, 'siap minum dan ngerasain segarnya'],
+    [/ngunyah\s+rasa\s+segarnya/gi, 'ngerasa segarnya'],
+    [/mengunyah\s+(air|minuman|rasa segar)/gi, 'minum $1'],
+    [/ngunyah\s+(air|minuman)/gi, 'minum $1'],
+    [/langsung\s+ngilangin\s+rasa\s+kering\s+di\s+mulut/gi, 'bikin mulut terasa lebih segar'],
+    [/ngilangin\s+rasa\s+kering/gi, 'bikin terasa lebih segar'],
+    [/menghilangkan\s+rasa\s+kering/gi, 'membantu terasa lebih segar'],
+    [/klaim\s+medis/gi, 'kesan natural'],
+    [/counterset/gi, 'counter'],
+    [/tumbuhan\s+hierbas/gi, 'tanaman kecil'],
+    [/sendok\s+berangan/gi, 'sendok di samping'],
+    [/tonggak\s+bungkus/gi, 'mengambil kemasan'],
+    [/membuhut/gi, 'menjaga'],
+    [/aroma\s+ngepuk/gi, 'aroma harum'],
+    [/ngepuk/gi, 'harum'],
+    [/kamera\s+jarik/gi, 'kamera mendekat'],
+    [/hargai/gi, 'puas']
+  ];
+
+  const drinkFixes = [
+    [/botol\s+dimakan/gi, 'botol diminum'],
+    [/air\s+dikunyah/gi, 'air diminum'],
+    [/air\s+dimakan/gi, 'air diminum'],
+    [/rasa\s+dikunyah/gi, 'rasa segar terasa'],
+    [/teguk\s+tekstur/gi, 'teguk rasa segarnya'],
+    [/mengunyah\s+segar/gi, 'merasakan segarnya']
+  ];
+
+  const foodFixes = [
+    [/susu\s+goreng/gi, 'mie goreng'],
+    [/mie\s+lumis/gi, 'mie matang'],
+    [/lintahkan\s+mie/gi, 'mengangkat mie'],
+    [/berenangin\s+mie/gi, 'menyiapkan mie'],
+    [/jari\s+meminta\s+susu/gi, 'jari menunjuk ke mie']
+  ];
+
+  const skincareFixes = [
+    [/cream\s+dimakan/gi, 'cream dioleskan'],
+    [/wajah\s+direbus/gi, 'wajah terlihat segar'],
+    [/kulit\s+digoreng/gi, 'kulit terlihat natural']
+  ];
+
+  const fashionFixes = [
+    [/baju\s+mendidih/gi, 'baju terlihat rapi'],
+    [/kain\s+dimasak/gi, 'kain bergerak natural'],
+    [/outfit\s+berasap/gi, 'outfit terlihat clean']
+  ];
+
+  const electronicsFixes = [
+    [/layar\s+dimakan/gi, 'layar menyala'],
+    [/kabel\s+diaduk/gi, 'kabel dipasang'],
+    [/device\s+direbus/gi, 'device dinyalakan']
+  ];
+
+  let fixes = [...universal];
+
+  if (key === 'drink') fixes = [...fixes, ...drinkFixes];
+  if (key === 'food') fixes = [...fixes, ...foodFixes];
+  if (key === 'skincare') fixes = [...fixes, ...skincareFixes];
+  if (key === 'fashion') fixes = [...fixes, ...fashionFixes];
+  if (key === 'electronics') fixes = [...fixes, ...electronicsFixes];
+
+  fixes.forEach(([from, to]) => {
+    t = t.replace(from, to);
+  });
+
+  if (field === 'emotion') {
+    const lower = t.toLowerCase();
+    const allowed = ['relatable','penasaran','lapar','haus','senang','puas','hangat','excited','yakin','natural','ceria','fokus','nyaman','friendly','curious','happy','warm','confident','segar','rapi'];
+    if (!allowed.some(word => lower.includes(word))) {
+      if (key === 'drink') return 'segar';
+      if (key === 'food') return 'puas';
+      if (key === 'fashion') return 'rapi';
+      return 'natural';
+    }
+  }
+
+  t = applyGlobalOutputCleanup(t, field, ctx);
+  return t.replace(/\s+/g, ' ').trim();
+}
+
 
 export function sanitizeCreativeTextByCategory(value = '', field = 'text', ctx = {}) {
   const profile = getCategoryQualityProfile(ctx);

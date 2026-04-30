@@ -50,6 +50,124 @@ function roleInstruction(role) {
   return PRODUCT_REF_ROLE_INSTRUCTIONS[role] || PRODUCT_REF_ROLE_INSTRUCTIONS.auto;
 }
 
+function categoryKeyForReference(ctx = {}) {
+  const raw = [
+    ctx.categoryQualityKey,
+    ctx.finalCategory,
+    ctx.category,
+    ctx.selectedCategory,
+    ctx.parentType,
+    ctx.productType,
+    ctx.productName
+  ].join(' ').toLowerCase();
+
+  if (/minuman|drink|beverage|water|air mineral|kopi|teh|juice|jus|soda/.test(raw)) return 'drink';
+  if (/makanan|food|noodle|mie|snack|indomie|rice|sauce/.test(raw)) return 'food';
+  if (/skincare|serum|cream|sunscreen|moisturizer|facial/.test(raw)) return 'skincare';
+  if (/fashion|baju|shirt|dress|outfit|sepatu|tas|celana/.test(raw)) return 'fashion';
+  if (/elektronik|electronics|gadget|phone|laptop|device|charger|headset|camera/.test(raw)) return 'electronics';
+  if (/home|living|rumah|furniture|organizer|cleaning/.test(raw)) return 'home_living';
+  return 'generic';
+}
+
+function contextualRoleLabel(role, ctx = {}) {
+  const key = categoryKeyForReference(ctx);
+
+  const labels = {
+    drink: {
+      main_packaging: 'Main Bottle / Packaging',
+      product_hero: 'Bottle Hero',
+      product_in_use: 'Drinking / Pouring Moment',
+      texture_detail: 'Condensation / Water Clarity Detail',
+      serving_result: 'Drink / Pouring Result',
+      bundle: 'Lifestyle Carry / Final Setup'
+    },
+    food: {
+      main_packaging: 'Main Packaging',
+      product_hero: 'Food Product Hero',
+      product_in_use: 'Cooking / Serving Moment',
+      texture_detail: 'Food Texture / Detail',
+      serving_result: 'Serving / Result',
+      bundle: 'Final Food Setup / Bundle'
+    },
+    skincare: {
+      main_packaging: 'Bottle / Tube Packaging',
+      product_hero: 'Skincare Hero',
+      product_in_use: 'Application Moment',
+      texture_detail: 'Cream / Texture Detail',
+      serving_result: 'Finish / Routine Result',
+      bundle: 'Routine / Bundle Setup'
+    },
+    fashion: {
+      main_packaging: 'Tag / Packaging',
+      product_hero: 'Fashion Item Hero',
+      product_in_use: 'Try-on / Worn Look',
+      texture_detail: 'Fabric / Stitch Detail',
+      serving_result: 'Fit / Styling Result',
+      bundle: 'Outfit / Bundle Setup'
+    },
+    electronics: {
+      main_packaging: 'Device / Box Packaging',
+      product_hero: 'Device Hero',
+      product_in_use: 'Feature Use Moment',
+      texture_detail: 'Screen / Port / Material Detail',
+      serving_result: 'Use Result / Feature Proof',
+      bundle: 'Desk / Accessory Setup'
+    }
+  };
+
+  return labels[key]?.[role] || labelRole(role);
+}
+
+function contextualRoleInstruction(role, ctx = {}) {
+  const key = categoryKeyForReference(ctx);
+
+  const instructions = {
+    drink: {
+      main_packaging: 'Preserve bottle shape, cap, label layout, water clarity, volume, scale, and transparent material.',
+      product_hero: 'Use as bottle/product hero anchor; keep label readable, shape accurate, and water clear.',
+      product_in_use: 'Use as drinking/pouring moment anchor; preserve bottle angle, water clarity, condensation, and hand interaction.',
+      texture_detail: 'Preserve condensation droplets, transparent water, label detail, cap, plastic/glass material, and highlight reflections.',
+      serving_result: 'Preserve drink/pour/sip result, water clarity, condensation, cup/bottle relationship, and refreshment feel.',
+      bundle: 'Preserve final lifestyle setup: bottle on table, bag, car holder, hand carry, or daily-use context.'
+    },
+    food: {
+      main_packaging: 'Preserve packaging shape, logo area, label layout, color palette, scale, and material.',
+      product_hero: 'Keep product readable, centered, accurate, and appetizing without redesigning packaging.',
+      product_in_use: 'Preserve food being prepared/served with realistic hand interaction and packaging continuity.',
+      texture_detail: 'Preserve food texture, seasoning, steam, color, serving surface, and close-up detail.',
+      serving_result: 'Preserve final serving, portion, plating, steam, texture, and appetizing detail.',
+      bundle: 'Preserve final food arrangement, package + serving relationship, props, and product context.'
+    },
+    skincare: {
+      main_packaging: 'Preserve bottle/tube shape, label area, cap, color, scale, and clean cosmetic material.',
+      product_hero: 'Keep skincare product readable and premium without fake clinical claims.',
+      product_in_use: 'Preserve application moment on hand/face with safe natural texture and lighting.',
+      texture_detail: 'Preserve cream/gel/serum texture, shine, viscosity, and clean surface detail.',
+      serving_result: 'Preserve soft routine finish without medical or extreme before-after claims.',
+      bundle: 'Preserve routine setup, product bundle, vanity props, and clean bathroom/desk context.'
+    },
+    fashion: {
+      main_packaging: 'Preserve tag, label, color, fold, item shape, and material identity.',
+      product_hero: 'Show fashion item clearly with accurate color, cut, and silhouette.',
+      product_in_use: 'Preserve worn fit, body proportion, fabric drape, and styling context.',
+      texture_detail: 'Preserve fabric texture, stitching, seams, print, and material movement.',
+      serving_result: 'Preserve final fit/styling look with realistic fabric physics.',
+      bundle: 'Preserve full outfit setup, accessories, and styling relationship.'
+    },
+    electronics: {
+      main_packaging: 'Preserve device/box shape, logo area, ports, buttons, screen frame, and scale.',
+      product_hero: 'Show device clearly without invented specs or fake UI text.',
+      product_in_use: 'Preserve feature-use action, hand interaction, and device screen/body continuity.',
+      texture_detail: 'Preserve screen, ports, buttons, material finish, reflections, and edges.',
+      serving_result: 'Preserve practical feature proof without hallucinated performance claims.',
+      bundle: 'Preserve desk setup, accessories, cables, and device arrangement.'
+    }
+  };
+
+  return instructions[key]?.[role] || roleInstruction(role);
+}
+
 function uniq(arr) {
   return [...new Set((arr || []).filter(Boolean))];
 }
@@ -81,7 +199,7 @@ function detectUploadedProductRefs(state) {
   return [];
 }
 
-function buildProductReferences(state) {
+function buildProductReferences(state, ctx = {}) {
   const uploaded = detectUploadedProductRefs(state);
 
   return [1, 2, 3, 4].map(i => {
@@ -95,8 +213,8 @@ function buildProductReferences(state) {
       label: `Product Ref ${i}`,
       uploaded: uploadedRef,
       role,
-      roleLabel: labelRole(role),
-      instruction: customInstruction || roleInstruction(role),
+      roleLabel: contextualRoleLabel(role, ctx),
+      instruction: customInstruction || contextualRoleInstruction(role, ctx),
       customInstruction
     };
   });
@@ -193,11 +311,14 @@ function defaultSceneInstruction(ctx, sceneNumber) {
 }
 
 function buildSceneProductMap(ctx, state, productReferences) {
-  const configuredIds = productReferences
-    .filter(r => r.uploaded || r.role !== 'auto' || r.customInstruction)
+  const activeIds = productReferences
+    .filter(r => r.uploaded || r.customInstruction)
     .map(r => r.id);
 
-  const availableIds = configuredIds.length ? configuredIds : ['prod1'];
+  // IMPORTANT:
+  // Default UI roles for Ref 2-4 do not mean those references exist.
+  // If only Ref 1 is uploaded, every scene must fallback to Ref 1.
+  const availableIds = activeIds.length ? activeIds : ['prod1'];
   const map = {};
 
   for (let i = 1; i <= (ctx.totalScenes || 5); i++) {
@@ -326,10 +447,13 @@ function formatSceneProductBlock(sceneMapItem, productReferences) {
 }
 
 export function buildReferenceControl(ctx, state) {
-  const productReferences = buildProductReferences(state);
+  const productReferences = buildProductReferences(state, ctx);
   const sceneProductMap = buildSceneProductMap(ctx, state, productReferences);
   const characterControl = buildCharacterControl(ctx, state);
   const backgroundControl = buildBackgroundControl(ctx, state);
+
+  const activeRefIdSet = new Set(Object.values(sceneProductMap).flatMap(item => item.refs || []));
+  const activeProductRefs = productReferences.filter(ref => activeRefIdSet.has(ref.id));
 
   const sceneBlocks = {};
   Object.keys(sceneProductMap).forEach(sceneNo => {
@@ -371,6 +495,7 @@ ${sceneMapBrief(sceneProductMap)}
     characterControl,
     backgroundControl,
     productReferences,
+    activeProductRefs,
     sceneProductMap,
     sceneBlocks,
     characterAnchor,

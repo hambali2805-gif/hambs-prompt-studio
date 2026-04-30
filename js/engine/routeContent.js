@@ -1,6 +1,6 @@
-import { sanitizeCreativeTextByCategory, guardSceneActionByCategory, normalizeScenePieceByCategory } from '../intelligence/categoryQualityProfiles.js?v=202604301036';
-import { stripMarkdownFences, compact } from '../shared/textCleaner.js?v=202604301036';
-import { ensureSubject } from '../shared/subjectUtils.js?v=202604301036';
+import { sanitizeCreativeTextByCategory, guardSceneActionByCategory, normalizeScenePieceByCategory } from '../intelligence/categoryQualityProfiles.js?v=202604301437';
+import { stripMarkdownFences, compact } from '../shared/textCleaner.js?v=202604301437';
+import { ensureSubject } from '../shared/subjectUtils.js?v=202604301437';
 
 export function parseGeminiPlan(raw){
  if(!raw) return null;
@@ -46,6 +46,12 @@ function sanitizeCreativeText(value, field = 'text', ctx = {}) {
     [/cheese-like\s+smile/gi, 'senyum natural'],
     [/daripara/gi, 'daripada'],
     [/rebek/gi, 'ribet'],
+    [/siap\s+ngunyah\s+rasa\s+segarnya/gi, 'siap minum dan ngerasain segarnya'],
+    [/ngunyah\s+rasa\s+segarnya/gi, 'ngerasa segarnya'],
+    [/mengunyah\s+(air|minuman|rasa segar)/gi, 'minum $1'],
+    [/ngunyah\s+(air|minuman)/gi, 'minum $1'],
+    [/langsung\s+ngilangin\s+rasa\s+kering\s+di\s+mulut/gi, 'bikin mulut terasa lebih segar'],
+    [/ngilangin\s+rasa\s+kering/gi, 'bikin terasa lebih segar'],
     [/menyentuh\s+aroma/gi, 'mencium aroma'],
     [/bumbu\s+sedih/gi, 'bumbu harum'],
     [/piring\s+nggakut/gi, 'piring mie'],

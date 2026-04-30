@@ -1,6 +1,6 @@
-import { buildCharacterPrefix, buildProductReferencePhrase, buildReferenceControlBlock } from '../../../shared/referenceHandler.js?v=202604301036';
-import { buildImagePromptBase, buildModeImageStyle, stripVideoOnlyTerms } from '../shared/imagePromptUtils.js?v=202604301036';
-import { buildBananaNegative } from './bananaNegative.js?v=202604301036';
+import { buildCharacterPrefix, buildProductReferencePhrase, buildReferenceControlBlock } from '../../../shared/referenceHandler.js?v=202604301437';
+import { buildImagePromptBase, buildModeImageStyle, stripVideoOnlyTerms } from '../shared/imagePromptUtils.js?v=202604301437';
+import { buildBananaNegative } from './bananaNegative.js?v=202604301437';
 
 export function buildBananaImagePrompt(params) {
     const {

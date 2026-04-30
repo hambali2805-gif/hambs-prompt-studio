@@ -1,6 +1,6 @@
-import { buildImagePromptByPlatform } from '../platforms/image/index.js?v=202604301036';
-import { buildVideoPromptByPlatform } from '../platforms/video/index.js?v=202604301036';
-import { validateSceneSet } from '../shared/validationUtils.js?v=202604301036';
+import { buildImagePromptByPlatform } from '../platforms/image/index.js?v=202604301437';
+import { buildVideoPromptByPlatform } from '../platforms/video/index.js?v=202604301437';
+import { validateSceneSet } from '../shared/validationUtils.js?v=202604301437';
 
 export function buildOutputPack(plan, ctx){
  const sceneVOs=plan.scenes.map((s,i)=>({
@@ -100,10 +100,14 @@ export function buildOutputPack(plan, ctx){
      imageEngineProfile:ctx.imageEngineProfile,
      videoEngineProfile:ctx.videoEngineProfile,
      referenceControl:ctx.referenceControl,
+     activeProductRefs:ctx.referenceControl?.activeProductRefs || [],
      finalCategory:ctx.finalCategory || ctx.category,
      categoryQualityKey:ctx.categoryQualityKey,
      categoryQualityProfile:ctx.categoryQualityProfile,
-     finalPresentationKeywords:ctx.presentationKeywords || ''
+     finalPresentationKeywords:ctx.presentationKeywords || '',
+     negativePromptFinal:ctx.negativePrompt || '',
+     detectedProductType:ctx.productType || '',
+     categoryGuardDebug:{ finalCategory:ctx.finalCategory || ctx.category, categoryQualityKey:ctx.categoryQualityKey, activeProductRefs:ctx.referenceControl?.activeProductRefs || [] }
    }
  };
 
