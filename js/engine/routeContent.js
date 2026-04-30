@@ -9,7 +9,7 @@ export function parseGeminiPlan(raw){
  try { return JSON.parse(text); } catch { return null; }
 }
 
-export function buildCreativePlan(raw, ctx, aiError = '', aiSource = 'gemini'){
+export function buildCreativePlan(raw, ctx, aiError = '', aiSource = 'ai'){
  const ai=parseGeminiPlan(raw);
 
  if(ai && Array.isArray(ai.scenes) && ai.scenes.length){
@@ -17,21 +17,18 @@ export function buildCreativePlan(raw, ctx, aiError = '', aiSource = 'gemini'){
  }
 
  const fallback = buildFallbackPlan(ctx);
-
  fallback.fallbackReason = aiError
    ? `AI API error: ${aiError}`
    : raw
      ? 'AI response received but failed JSON/schema parsing'
      : 'AI returned empty response or call was skipped';
-
- fallback.rawGeminiPreview = raw ? String(raw).slice(0, 800) : '';
-
- console.warn('[HAMBS] AI plan failed; fallback used', {
-   reason: fallback.fallbackReason,
-   rawPreview: fallback.rawGeminiPreview
- });
-
+ fallback.rawAiPreview = raw ? String(raw).slice(0, 800) : '';
+ fallback.rawGeminiPreview = fallback.rawAiPreview;
  return fallback;
+}
+
+function normalizeArray(v, fallback = []) {
+  return Array.isArray(v) && v.length ? v.filter(Boolean).map(x => String(x).trim()).filter(Boolean) : fallback;
 }
 
 function normalizePlan(plan, ctx, fallback, aiSource = 'ai'){
@@ -41,20 +38,36 @@ function normalizePlan(plan, ctx, fallback, aiSource = 'ai'){
    const s=plan.scenes[i] || fallbackScene(ctx,i);
 
    const vo = localizeVOText(compact(s.vo)||fallbackVO(ctx,i), ctx);
+   const visualSummary = compact(s.visualSummary || s.description) || fallbackDescription(ctx,i);
+   const mainAction = compact(s.mainAction || s.action) || beat.action || pick(ctx.rules.actions, i) || 'natural product interaction';
+   const cameraDirection = compact(s.cameraDirection) || beat.cameraDirection || ctx.platformProfile?.camera || ctx.videoStyle?.camera || 'vertical social video framing';
+   const continuity = compact(s.continuity) || beat.continuity || `Keep the same ${ctx.gender.subj}, product scale, background logic, and product identity.`;
 
    scenes.push({
+    number: Number(s.number) || i + 1,
     title: compact(s.title)||beat.title||defaultTitle(ctx,i),
     phase: compact(s.phase)||beat.phase||defaultPhase(ctx,i),
     vo,
     duration: compact(s.duration)|| (ctx.mode==='ugc'?'2-4s':'2-3s'),
     emotion: compact(s.emotion)||beat.emotion||defaultEmotion(ctx,i),
-    description: ensureSubject(compact(s.description)||fallbackDescription(ctx,i), ctx.gender.subj),
-    mustInclude: Array.isArray(s.mustInclude) && s.mustInclude.length ? s.mustInclude : beat.mustInclude,
-    avoid: Array.isArray(s.avoid)?s.avoid:ctx.rules.avoid,
+    visualSummary,
+    mainAction,
+    cameraDirection,
+    continuity,
+    description: ensureSubject(visualSummary, ctx.gender.subj),
+    mustInclude: normalizeArray(s.mustInclude, beat.mustInclude),
+    avoid: normalizeArray(s.avoid, ctx.rules.avoid),
     meaning: compact(s.meaning)||beat.meaning||'Move the viewer through the story with product-specific proof.'
    });
  }
- return { source:fallback?'fallback':aiSource, voiceover:scenes.map((s,i)=>`(Scene ${i+1} - ${s.phase}) ${s.vo}`).join('\n'), scenes };
+
+ return {
+   source:fallback?'fallback':aiSource,
+   storyTitle: compact(plan.storyTitle) || `${ctx.productName} ${ctx.mode.toUpperCase()} Story`,
+   contentHook: compact(plan.contentHook) || scenes[0]?.vo || '',
+   voiceover:scenes.map((s,i)=>`(Scene ${i+1} - ${s.phase}) ${s.vo}`).join('\n'),
+   scenes
+ };
 }
 
 export function buildFallbackPlan(ctx){
@@ -64,19 +77,14 @@ export function buildFallbackPlan(ctx){
 function defaultPhase(ctx,i){
  return (ctx.mode==='ugc'?['hook','pain','demo','proof','cta']:['hook','problem','product reveal','feature','demo','benefit','proof','lifestyle','hero','cta'])[i] || 'scene';
 }
-
 function defaultTitle(ctx,i){
  const map={hook:'Hook',pain:'Pain Point',problem:'Problem',demo:'Demo',proof:'Proof',cta:'CTA','product reveal':'Product Reveal',feature:'Feature',benefit:'Benefit',lifestyle:'Lifestyle','hero':'Hero Shot'};
  return map[defaultPhase(ctx,i)]||`Scene ${i+1}`;
 }
-
 function defaultEmotion(ctx,i){
  return ctx.mode==='ugc'?['curious','relatable','interested','convinced','friendly'][i]||'natural':['attention','tension','desire','trust','action'][i%5];
 }
-
-function pick(arr,i){
- return arr && arr.length ? arr[i%arr.length] : '';
-}
+function pick(arr,i){ return arr && arr.length ? arr[i%arr.length] : ''; }
 
 const ID_ACTION = {
  'boil noodles':'rebus mie',
@@ -94,9 +102,7 @@ const ID_ACTION = {
  'chew reaction':'reaksi setelah dicoba'
 };
 
-function idTerm(text){
- return ID_ACTION[text] || text;
-}
+function idTerm(text){ return ID_ACTION[text] || text; }
 
 function localizeVOText(text, ctx){
  if((ctx.language||'ID') !== 'ID') return text;
@@ -114,73 +120,62 @@ function localizeVOText(text, ctx){
 function sceneBeat(ctx,i){
  const phase = defaultPhase(ctx,i);
  const r = ctx.rules || {};
- const p = ctx.productName || 'produk ini';
 
  if(ctx.productType === 'instant_noodle'){
    const beats = [
     {
-     title:'Hook',
-     phase:'hook',
-     emotion:'curious',
+     title:'Late Night Craving', phase:'hook', emotion:'relatable',
+     setting:'cozy kitchen entrance or counter',
+     action:'creator touches stomach and glances at the kitchen counter',
+     cameraDirection:'vertical handheld medium close-up, quick relatable expression, no cooking action yet',
+     proof:'late-night hunger cue',
+     vo:`Pernah nggak sih, malam-malam gini laper tapi males ribet?`,
+     continuity:'same kitchen, same outfit, product can appear nearby but not used yet',
+     meaning:'Stop scroll with a familiar hunger problem.'
+    },
+    {
+     title:'Quick Comfort Fix', phase:'pain', emotion:'longing',
      setting:'kitchen counter',
-     action:'open packet beside a small pot of boiling noodles',
-     motion:'hands open the pack, noodles and seasoning visible',
-     proof:'quick late-night comfort food cue',
-     voAction:'buka bungkusnya',
-     vo:`Pernah nggak sih, lapar malam tapi malas ribet?`,
-     meaning:'Stop scroll with a familiar late-night hunger problem.'
+     action:'hand reaches for the Indomie Goreng pack and brings it closer to camera',
+     cameraDirection:'close-up product pickup, label visible, casual handheld framing',
+     proof:'recognizable pack as the quick solution',
+     vo:`Jujur gue lagi butuh comfort food yang satset tapi tetap enak.`,
+     continuity:'product pack remains same size and design as reference',
+     meaning:'Introduce the product as the immediate solution.'
     },
     {
-     title:'Pain Point',
-     phase:'pain',
-     emotion:'relatable',
-     setting:'kitchen counter',
-     action:'pour seasoning into a bowl of warm noodles',
-     motion:'seasoning falls clearly onto the noodles',
-     proof:'aroma bumbu mulai naik',
-     voAction:'tuang bumbunya',
-     vo:`Kadang cuma pengen makan yang simpel, tapi tetap berasa.`,
-     meaning:'Make the need feel practical and familiar.'
+     title:'Seasoning Demo', phase:'demo', emotion:'focused',
+     setting:'white kitchen counter or dining table',
+     action:'open seasoning sachet and pour sauce/powder onto steaming noodles',
+     cameraDirection:'overhead close-up on hands, sachet, noodles, and visible steam',
+     proof:'seasoning lands clearly on noodles',
+     vo:`Langsung gue bikin, terus bumbunya tuh langsung kecium banget.`,
+     continuity:'same bowl, same counter, same product pack nearby',
+     meaning:'Show actual product preparation with clear physical use.'
     },
     {
-     title:'Demo',
-     phase:'demo',
-     emotion:'interested',
+     title:'Aroma Proof', phase:'proof', emotion:'excited',
      setting:'dining table',
-     action:'stir noodles until the seasoning coats evenly',
-     motion:'fork mixes the noodles in a close-up bowl shot',
-     proof:'bumbu tercampur rata',
-     voAction:'aduk mie-nya',
-     vo:`Gue coba langsung aduk mie-nya, dan kelihatan bumbunya nyatu.`,
-     meaning:'Show clear product use, not just holding the pack.'
+     action:'stir noodles until glossy seasoning coats the strands while steam rises',
+     cameraDirection:'tight food close-up with slight handheld movement, then small reaction cut',
+     proof:'glossy sauce, steam, aroma reaction',
+     vo:`Pas diaduk gini, aromanya langsung naik banget, bikin makin laper.`,
+     continuity:'same noodle bowl and product pack stay visible in believable positions',
+     meaning:'Give sensory proof through texture, steam, and reaction.'
     },
     {
-     title:'Proof',
-     phase:'proof',
-     emotion:'convinced',
+     title:'First Bite Closing', phase:'cta', emotion:'happy',
      setting:'dining table',
-     action:'first bite with noodles lifted on a fork',
-     motion:'she takes a small bite and reacts naturally',
-     proof:'aroma bumbu naik dan tekstur mie kelihatan matang',
-     voAction:'coba suapan pertama',
-     vo:`Yang kerasa tuh aromanya langsung naik, gurihnya familiar banget.`,
-     meaning:'Give sensory proof through food texture, steam, and reaction.'
-    },
-    {
-     title:'CTA',
-     phase:'cta',
-     emotion:'friendly',
-     setting:'dining table',
-     action:'finished serving beauty shot with the pack beside the bowl',
-     motion:'she smiles lightly, fork rests near the bowl, product pack stays visible',
-     proof:'comfort food cepat buat momen santai',
-     voAction:'rekomendasi santai',
-     vo:`Kalau lo butuh comfort food cepat, Indomie Goreng ini worth buat distok.`,
-     meaning:'Close with a soft recommendation and clear product memory.'
+     action:'creator takes the first bite, nods naturally, and relaxes',
+     cameraDirection:'medium shot, creator and bowl visible, soft closing beat',
+     proof:'first bite satisfaction expression',
+     vo:`Emang paling bener deh santai sambil makan mie, mood langsung balik lagi.`,
+     continuity:'same creator, same food, same product identity; no new setting jump',
+     meaning:'Close with emotional benefit and soft recommendation.'
     }
    ];
    const b = beats[i] || beats[beats.length-1];
-   return {...b, mustInclude:[b.action,b.motion,b.proof].filter(Boolean)};
+   return {...b, mustInclude:[b.action,b.proof].filter(Boolean)};
  }
 
  const action = pick(r.actions,i);
@@ -197,6 +192,8 @@ function sceneBeat(ctx,i){
   motion,
   proof: benefit,
   voAction: idTerm(action),
+  cameraDirection: ctx.platformProfile?.camera || ctx.videoStyle?.camera,
+  continuity:`Keep the same ${ctx.gender.subj}, same product identity, same visual logic.`,
   mustInclude:[action,motion,benefit].filter(Boolean),
   meaning:fallbackMeaning(ctx,i)
  };
@@ -205,11 +202,16 @@ function sceneBeat(ctx,i){
 function fallbackScene(ctx,i){
  const beat = sceneBeat(ctx,i);
  return {
+  number:i+1,
   title:beat.title || defaultTitle(ctx,i),
   phase:beat.phase || defaultPhase(ctx,i),
   vo:beat.vo || fallbackVO(ctx,i),
   duration:ctx.mode==='ugc'?'2-4s':'2-3s',
   emotion:beat.emotion || defaultEmotion(ctx,i),
+  visualSummary:fallbackDescription(ctx,i),
+  mainAction:beat.action || pick(ctx.rules.actions,i) || 'natural product interaction',
+  cameraDirection:beat.cameraDirection || ctx.platformProfile?.camera || ctx.videoStyle?.camera || 'vertical social video framing',
+  continuity:beat.continuity || `Keep the same ${ctx.gender.subj}, product identity, and background logic.`,
   description:fallbackDescription(ctx,i),
   mustInclude:beat.mustInclude,
   avoid:ctx.rules.avoid,
@@ -218,68 +220,31 @@ function fallbackScene(ctx,i){
 }
 
 function fallbackMeaning(ctx,i){
- return ctx.mode==='ugc'
- ? ['Stop scroll with a real everyday problem.','Make the pain point feel familiar.','Show the product being used, not just held.','Give physical proof and a human reaction.','Close with a soft recommendation.'][i]||'Continue natural story.'
- : ['Grab attention.','Set the consumer problem.','Reveal product clearly.','Show a key feature.','Demonstrate use.','Translate feature into benefit.','Give believable proof.','Place product in lifestyle context.','Make hero visual memorable.','End with CTA.'][i]||'Continue brand story.';
-}
-
-function fallbackVO(ctx,i){
- const p=ctx.productName, r=ctx.rules, pain=pick(r.painPoints,i), ben=pick(r.benefits,i);
- const beat = sceneBeat(ctx,i);
- const act = beat.voAction || idTerm(pick(r.actions,i));
-
- if(ctx.mode==='ads'){
-   const lines=[
-    `Saat ${pain}, yang dibutuhkan adalah solusi yang terasa nyata.`,
-    `Perkenalkan ${p}, dibuat untuk momen ketika detail kecil benar-benar penting.`,
-    `Dengan ${act}, ${p} terlihat relevan untuk penggunaan harian.`,
-    `Rasakan ${ben}, tanpa klaim berlebihan dan tetap terasa believable.`,
-    `Setiap detailnya dirancang agar pengalaman memakai produk terasa lebih mudah.`,
-    `Dari tampilan sampai cara dipakai, ${p} memberi alasan yang jelas untuk dipilih.`,
-    `Bukti terbaiknya ada pada interaksi nyata: ${act}.`,
-    `Masuk ke rutinitas harian tanpa terasa dipaksakan.`,
-    `Inilah ${p} dalam momen terbaiknya: jelas, rapi, dan mudah diingat.`,
-    `Coba ${p} dan rasakan bedanya dalam aktivitasmu.`
-   ];
-   return lines[i]||lines[lines.length-1];
- }
-
- if(ctx.presentationType==='asmr_lofi'){
-   return [
-    `Buka pelan... detailnya kelihatan banget.`,
-    `Dengerin teksturnya, satisfying sih.`,
-    `Aku coba langsung, gerakannya simpel.`,
-    `Close-up-nya bikin kelihatan bedanya.`,
-    `Kalau suka detail kayak gini, ini menarik buat dicoba.`
-   ][i] || `Detail ${p} kelihatan natural.`;
- }
-
- const casual=ctx.speechKey==='jaksel';
- const lines=casual?
- [
-  `Pernah nggak sih, ${pain}?`,
-  `Nah ini yang bikin gue penasaran sama ${p}.`,
-  `Gue coba langsung ${act}.`,
-  `Yang kerasa tuh ${ben}, bukan cuma kelihatan bagus doang.`,
-  `Kalau lo butuh yang begini, ${p} worth buat dicek.`
- ]:
- [
-  `Pernah mengalami ${pain}?`,
-  `Ini alasan saya ingin mencoba ${p}.`,
-  `Saya tes langsung dengan cara ${act}.`,
-  `Yang terasa adalah ${ben}, dengan cara yang cukup natural.`,
-  `Kalau butuh produk seperti ini, ${p} layak dipertimbangkan.`
- ];
-
- return localizeVOText(lines[i]||lines[lines.length-1], ctx);
+ const phase=defaultPhase(ctx,i);
+ const meanings={hook:'Create attention and relevance.',pain:'Make the need feel relatable.',problem:'Make the need feel relatable.',demo:'Show product use physically.',proof:'Show visible or sensory proof.',cta:'Close with a product memory and action.'};
+ return meanings[phase] || 'Advance the story.';
 }
 
 function fallbackDescription(ctx,i){
- const subject=ctx.gender.subj;
- const beat = sceneBeat(ctx,i);
- const visual=ctx.videoStyle.visual;
- const pres=pick(ctx.presentation.visualRules,i);
- const ref=(ctx.rules.referenceFocus||[]).join(', ');
+ const beat=sceneBeat(ctx,i);
+ const setting=beat.setting || pick(ctx.rules.contexts,i) || ctx.background.directive;
+ const action=beat.action || pick(ctx.rules.actions,i) || `show ${ctx.productName}`;
+ const proof=beat.proof || pick(ctx.rules.benefits,i) || ctx.productTypeLabel;
+ return `${ctx.gender.subj} in ${setting}, ${action}, with ${ctx.productName} clearly visible; visible proof: ${proof}; mood: ${beat.emotion || defaultEmotion(ctx,i)}.`;
+}
 
- return `${subject} in ${beat.setting}, using ${ctx.productName}. Scene action: ${beat.action}. Motion: ${beat.motion}. Presentation: ${pres}. Product proof: ${beat.proof}. ${visual}. Keep product reference accurate: ${ref}.`;
+function fallbackVO(ctx,i){
+ const beat=sceneBeat(ctx,i);
+ if(beat.vo) return beat.vo;
+ if((ctx.language||'ID')==='ID'){
+  const p=ctx.productName;
+  const phase=defaultPhase(ctx,i);
+  const action=idTerm(beat.action||pick(ctx.rules.actions,i)||'pakai produknya');
+  if(phase==='hook') return `Pernah nggak sih butuh ${p} di momen kayak gini?`;
+  if(phase==='pain'||phase==='problem') return `Makanya aku cari yang praktis tapi tetap berasa.`;
+  if(phase==='demo') return `Aku coba langsung ${action}, biar kelihatan hasilnya.`;
+  if(phase==='proof') return `Nah bagian ini yang bikin aku yakin, detailnya kelihatan banget.`;
+  if(phase==='cta') return `Kalau lo butuh opsi yang gampang, ${p} ini bisa banget dicoba.`;
+ }
+ return `Scene ${i+1} shows ${ctx.productName} in a clear product story moment.`;
 }

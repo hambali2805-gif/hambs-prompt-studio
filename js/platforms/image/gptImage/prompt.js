@@ -1,4 +1,19 @@
+function list(v){ return Array.isArray(v) ? v.filter(Boolean).join(', ') : String(v || ''); }
+
 export function buildGptImagePrompt(ctx,scene,index){
  const voice=ctx.mode==='ugc'?'a believable creator-made social image':'a polished brand-safe campaign image';
- return `Create ${voice} for ${ctx.productName}. Scene ${index+1}: ${scene.title}. ${scene.description} The image must feel human and specific to ${ctx.productTypeLabel}, not generic stock photography. Show the product being used through ${ctx.presentation.label}: ${ctx.presentation.purpose}. Preserve product reference details: ${(ctx.rules.referenceFocus||[]).join(', ')}. Character/reference instruction: ${ctx.referenceDirectives.summary}. Visual style: ${ctx.videoStyle.visual}. Background adaptation: ${ctx.background.directive}. Avoid: ${[...(scene.avoid||[]),ctx.negativePrompt].join(', ')}.`;
+ const engine=ctx.imageEngineProfile || {};
+ return [
+  `Create ${voice} for ${ctx.platformProfile?.label || 'social platform'} using ${engine.label || 'GPT Image'}.`,
+  `Scene ${index+1}/${ctx.totalScenes}: ${scene.title} (${scene.phase}).`,
+  `Visual summary: ${scene.visualSummary || scene.description}`,
+  `Main still moment: ${scene.mainAction}. Emotion: ${scene.emotion}.`,
+  `Camera/framing: ${scene.cameraDirection || ctx.platformProfile?.camera || ctx.videoStyle.camera}.`,
+  `The image must feel human and specific to ${ctx.productTypeLabel}, not generic stock photography.`,
+  `Product: ${ctx.productName}; visibility: ${ctx.productVisibility}; preserve reference details: ${list(ctx.rules.referenceFocus)}.`,
+  `Image engine rules: ${list(engine.promptRules)}.`,
+  `Character/reference instruction: ${ctx.referenceDirectives.summary}.`,
+  `Background adaptation: ${ctx.background.directive}. Continuity: ${scene.continuity}.`,
+  `Avoid: ${list([...(scene.avoid||[]), ...(engine.negativeRules||[]), ctx.negativePrompt])}.`
+ ].join(' ');
 }

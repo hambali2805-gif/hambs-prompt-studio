@@ -83,11 +83,32 @@ function selOpt(btn, grp) {
   saveSession();
 }
 
+
+const STRATEGY_FIELD_IDS = [
+  'targetPlatform','contentGoal','targetAudience','contentDuration','sceneCount',
+  'hookType','ctaType','productVisibility','cameraStyle'
+];
+
+function syncStrategyStateFromUI() {
+  STRATEGY_FIELD_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) state[id] = el.value || state[id] || '';
+  });
+}
+
+function syncStrategyUIFromState() {
+  STRATEGY_FIELD_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && state[id] != null) el.value = state[id];
+  });
+}
+
 // ==================== GENERATE LOGIC ====================
 async function startAI() {
   state.productName = document.getElementById('productName')?.value || 'Produk';
   state.productDescription = document.getElementById('productDescription')?.value || '';
   state.customNegativePrompt = document.getElementById('customNegativePrompt')?.value || '';
+  syncStrategyStateFromUI();
 
   const provider = getAiProvider();
   const geminiKey = getApiKey();
@@ -121,7 +142,7 @@ async function startAI() {
   const progEl = document.getElementById('progressBar');
 
   try {
-    statusEl.textContent = '🧠 Building V5 Clean Context...';
+    statusEl.textContent = '🧠 Building V5 Creative Brief...';
     progEl.style.width = '8%';
     const ctx = buildContext();
     await delay(250);
@@ -181,7 +202,9 @@ Raw AI preview: ${plan.rawGeminiPreview}` : '';
       debugContext: pack.debugContext,
       planSource: plan.source,
       fallbackReason: plan.fallbackReason || '',
-      rawGeminiPreview: plan.rawGeminiPreview || ''
+      rawGeminiPreview: plan.rawGeminiPreview || plan.rawAiPreview || '',
+      rawAiPreview: plan.rawAiPreview || plan.rawGeminiPreview || '',
+      aiBrief: ctx.creativeBrief || ''
     };
 
     statusEl.textContent = `🎉 Selesai! V5 Clean Engine aktif (${plan.source}).`;
@@ -223,7 +246,7 @@ function displayMasterPlan() {
     <span class="engine-realism">Realism: ${engineConfig.realism}%</span>
     <span class="engine-category">📁 ${ctx?.category || state.selectedCategory}</span>
     <span class="engine-category">🧠 ${ctx?.productTypeLabel || 'Product Type'} ${ctx?.productConfidence ? Math.round(ctx.productConfidence * 100) + '%' : ''}</span>
-    <span class="engine-category">🎭 ${ctx?.presentation?.label || 'Presentation'}</span>
+    <span class="engine-category">🎭 ${ctx?.presentation?.label || 'Presentation'}</span>\n    <span class="engine-category">🎯 ${ctx?.platformProfile?.label || ctx?.targetPlatform || 'Platform'}</span>\n    <span class="engine-category">📣 ${String(ctx?.contentGoal || 'goal').replace(/_/g, ' ')}</span>
   `;
   container.appendChild(engineInfo);
 
@@ -281,6 +304,17 @@ function displayMasterPlan() {
       </div>`;
     container.appendChild(card);
   });
+
+
+  if (state.generatedData.aiBrief) {
+    const briefSection = document.createElement('div');
+    briefSection.className = 'json-output-section';
+    briefSection.innerHTML = `
+      <div class="json-output-header"><span>🧠 AI CREATIVE BRIEF SENT</span><button class="btn-copy" id="copyBriefBtn">📋 Copy Brief</button></div>
+      <pre class="json-output-text">${state.generatedData.aiBrief}</pre>`;
+    container.appendChild(briefSection);
+    briefSection.querySelector('#copyBriefBtn').addEventListener('click', function () { copyToClipboard(this, state.generatedData.aiBrief); });
+  }
 
   if (state.generatedData.structured) {
     const jsonSection = document.createElement('div');
@@ -352,6 +386,16 @@ function initEngineConfigUI() {
     const val = parseInt(e.target.value); updateConfig({ realism: val });
     const label = document.getElementById('realismValue'); if (label) label.textContent = val; saveSession();
   });
+  STRATEGY_FIELD_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      if (state[id] != null) el.value = state[id];
+      el.addEventListener(el.tagName === 'INPUT' ? 'input' : 'change', e => {
+        state[id] = e.target.value;
+        saveSession();
+      });
+    }
+  });
 }
 function bind(id, event, fn) { const el = document.getElementById(id); if (el) el.addEventListener(event, fn); }
 
@@ -383,7 +427,9 @@ document.addEventListener('DOMContentLoaded', () => {
   state.apiKey = localStorage.getItem(API_KEY_STORAGE) || '';
   loadProjectList();
   if (state.apiKey) { const apiInput = document.getElementById('apiKeyInput'); if (apiInput) apiInput.value = state.apiKey; const warn = document.getElementById('apiWarning'); if (warn) warn.innerHTML = '&#10003; Tersimpan'; }
+  syncStrategyUIFromState();
   if (restoreSession()) { updateUI(); if (state.currentStep === 3 && state.generatedData) displayMasterPlan(); if (!confirm('Sesi sebelumnya ditemukan. Lanjutkan?')) clearSession(); }
+  syncStrategyUIFromState();
   updateConfirmBtn();
 });
 

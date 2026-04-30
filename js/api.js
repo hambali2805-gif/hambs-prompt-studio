@@ -119,7 +119,7 @@ async function requestGeminiWithRetry(payload, key, label) {
             }
 
             const delay = 1200 * attempt;
-            console.warn(`Gemini ${label} temporary failure, retry ${attempt}/3 in ${delay}ms:`, e);
+            console.warn(`Gemini ${label} temporary failure, retry ${attempt}/5 in ${delay}ms:`, e);
             await sleep(delay);
         }
     }
@@ -173,6 +173,22 @@ async function callGeminiDirect(prompt) {
     }
 }
 
+
+function extractOpenRouterText(d) {
+    const choice = d?.choices?.[0] || {};
+    const msg = choice?.message || {};
+    const content = msg?.content ?? choice?.text ?? d?.output_text;
+
+    if (typeof content === 'string') return content.trim();
+    if (Array.isArray(content)) {
+        return content.map(part => {
+            if (typeof part === 'string') return part;
+            return part?.text || part?.content || part?.input_text || part?.output_text || '';
+        }).join('\n').trim();
+    }
+    return '';
+}
+
 async function requestOpenRouterPayload(payload, key) {
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
@@ -194,8 +210,15 @@ async function requestOpenRouterPayload(payload, key) {
     }
 
     const d = await res.json();
-    const text = d?.choices?.[0]?.message?.content;
-    if (!text) throw new Error('OpenRouter tidak mengembalikan teks.');
+    const text = extractOpenRouterText(d);
+    if (!text) {
+        console.warn('OpenRouter empty response:', d);
+        const finishReason = d?.choices?.[0]?.finish_reason || 'unknown';
+        const usedModel = d?.model || payload?.model || 'unknown';
+        const e = new Error(`OpenRouter tidak mengembalikan teks. finish_reason=${finishReason}, model=${usedModel}`);
+        e.details = d;
+        throw e;
+    }
     return text;
 }
 
@@ -213,7 +236,7 @@ async function requestOpenRouterWithRetry(payload, key, label) {
             }
 
             const delay = 1200 * attempt;
-            console.warn(`OpenRouter ${label} temporary failure, retry ${attempt}/3 in ${delay}ms:`, e);
+            console.warn(`OpenRouter ${label} temporary failure, retry ${attempt}/5 in ${delay}ms:`, e);
             await sleep(delay);
         }
     }
@@ -328,11 +351,11 @@ export async function testOpenRouterConnection() {
         messages: [
             {
                 role: 'user',
-                content: 'Reply exactly with: OK'
+                content: 'Reply with only this exact text, no explanation: OK'
             }
         ],
         temperature: 0,
-        max_tokens: 10
+        max_tokens: 50
     };
 
     const text = await requestOpenRouterWithRetry(payload, key, 'connection-test');
