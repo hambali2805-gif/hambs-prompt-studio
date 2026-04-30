@@ -1,1 +1,1 @@
-export { buildVeoPrompt } from './prompt.js?v=202604300937';
+export { buildVeoPrompt } from './prompt.js?v=202604300940';

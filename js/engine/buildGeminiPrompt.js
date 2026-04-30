@@ -1,4 +1,4 @@
-import { buildRoleplayBlock } from './roleplayProfiles.js?v=202604300937';
+import { buildRoleplayBlock } from './roleplayProfiles.js?v=202604300940';
 
 function list(v, fallback = 'none') {
   return Array.isArray(v) && v.length ? v.join(' | ') : fallback;
