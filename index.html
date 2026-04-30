@@ -6,7 +6,7 @@
     <title>HAMBS AI Video Content Engine</title>
     <link href="https://cdn.jsdelivr.net/npm/fontsource-inter@5.0/index.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <link rel="stylesheet" href="style.css?v=202604301437">
+    <link rel="stylesheet" href="style.css?v=202604301651">
 </head>
 <body>
 
@@ -259,6 +259,85 @@
                 </div>
             </div>
 
+
+
+            <div class="form-section" id="voiceStyleFields">
+                <div class="form-section-title">🎙️ VO / SPEAKING STYLE</div>
+                <div class="engine-config-grid">
+                    <div class="config-item">
+                        <label class="config-label">Gaya Bicara</label>
+                        <select id="speakingStyle" class="config-select">
+                            <option value="casual_indonesia" selected>Casual Indonesia</option>
+                            <option value="jaksel_light">Jaksel Light</option>
+                            <option value="genz_tiktok">Gen-Z TikTok</option>
+                            <option value="bestie">Bestie / Teman Dekat</option>
+                            <option value="honest_review">Review Jujur</option>
+                            <option value="soft_selling">Soft Selling</option>
+                            <option value="live_seller">Live Seller</option>
+                            <option value="professional_clean">Professional Clean</option>
+                            <option value="premium_elegant">Premium / Elegant</option>
+                            <option value="emak_rumahan">Emak / Rumahan</option>
+                            <option value="tech_reviewer">Tech Reviewer</option>
+                            <option value="light_comedy">Comedy Ringan</option>
+                        </select>
+                    </div>
+
+                    <div class="config-item">
+                        <label class="config-label">Persona</label>
+                        <select id="voicePersona" class="config-select">
+                            <option value="best_friend">Best Friend</option>
+                            <option value="reviewer" selected>Reviewer</option>
+                            <option value="seller">Seller</option>
+                            <option value="expert">Expert</option>
+                            <option value="beauty_advisor">Beauty Advisor</option>
+                            <option value="tech_reviewer">Tech Reviewer</option>
+                            <option value="mom_household">Mom / Household</option>
+                            <option value="student">Student</option>
+                            <option value="lifestyle_creator">Lifestyle Creator</option>
+                        </select>
+                    </div>
+
+                    <div class="config-item">
+                        <label class="config-label">Energy</label>
+                        <select id="voiceEnergy" class="config-select">
+                            <option value="calm">Calm</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+
+                    <div class="config-item">
+                        <label class="config-label">Slang Level</label>
+                        <select id="slangLevel" class="config-select">
+                            <option value="none">None</option>
+                            <option value="light" selected>Light</option>
+                            <option value="medium">Medium</option>
+                            <option value="strong">Strong</option>
+                        </select>
+                    </div>
+
+                    <div class="config-item">
+                        <label class="config-label">CTA Style</label>
+                        <select id="ctaStyle" class="config-select">
+                            <option value="soft_cta" selected>Soft CTA</option>
+                            <option value="direct_cta">Direct CTA</option>
+                            <option value="live_seller_cta">Live Seller CTA</option>
+                            <option value="review_cta">Review CTA</option>
+                            <option value="organic_no_cta">No CTA / Organic</option>
+                        </select>
+                    </div>
+
+                    <div class="config-item">
+                        <label class="config-label">VO Length</label>
+                        <select id="voLength" class="config-select">
+                            <option value="short" selected>Short</option>
+                            <option value="medium">Medium</option>
+                            <option value="detailed">Detailed</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="config-hint">Voice Style mengontrol cara VO bicara. Tone lama tetap ada, tapi aturan ini jadi guard utama agar VO tidak selalu Jaksel.</p>
+            </div>
 
             <div class="form-section" id="referenceControlFields">
                 <div class="form-section-title">🧩 CHARACTER / BACKGROUND / PRODUCT REFERENCES</div>
@@ -565,6 +644,6 @@
     <span>💾 Sesi Tersimpan</span>
 </div>
 
-<script type="module" src="js/app.js?v=202604301437"></script>
+<script type="module" src="js/app.js?v=202604301651"></script>
 </body>
 </html>

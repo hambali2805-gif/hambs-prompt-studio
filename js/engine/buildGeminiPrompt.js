@@ -1,4 +1,4 @@
-import { buildRoleplayBlock } from './roleplayProfiles.js?v=202604301437';
+import { buildRoleplayBlock } from './roleplayProfiles.js?v=202604301651';
 
 function list(v, fallback = 'none') {
   return Array.isArray(v) && v.length ? v.join(' | ') : fallback;
@@ -44,6 +44,23 @@ Use these as semantic material, not copy-paste lines.
 
 REFERENCE HANDLING
 ${ctx.referenceDirectives.summary}
+
+VOICE STYLE SYSTEM
+- Speaking Style: ${ctx.voiceStyle?.speakingStyleLabel || 'Casual Indonesia'}
+- Persona: ${ctx.voiceStyle?.personaLabel || 'Reviewer'}
+- Energy: ${ctx.voiceStyle?.energyLabel || 'Medium'}
+- Slang Level: ${ctx.voiceStyle?.slangLabel || 'Light'}
+- CTA Style: ${ctx.voiceStyle?.ctaLabel || 'Soft CTA'}
+- VO Length: ${ctx.voiceStyle?.lengthLabel || 'Short'}
+- Category Compatibility: ${ctx.voiceStyle?.categoryVoiceCompatibility || 'compatible'}
+- Allowed expressions: ${(ctx.voiceStyle?.allowedExpressions || []).join(', ')}
+- Avoid expressions: ${(ctx.voiceStyle?.avoidExpressions || []).join(', ')}
+- Rules: ${(ctx.voiceStyle?.rules || []).join(' | ')}
+- Voice style rules override the old selectedTone when they conflict.
+- Keep VO natural, short, and scene-specific.
+- Do not overuse Jaksel slang unless selected style and slang level allow it.
+- Do not make medical, performance, discount, stock, or guaranteed result claims.
+- CTA belongs mostly in final scene unless CTA style says otherwise.
 
 ANTI-NONSENSE LANGUAGE RULES
 - Never use malformed Indonesian words, nonsense words, random poetic nouns, or mistranslated phrases.

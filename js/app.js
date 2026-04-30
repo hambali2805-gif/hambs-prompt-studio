@@ -2,9 +2,9 @@
 // UI/API tetap, semua generator lama dipensiunkan. Generation path:
 // UI → buildContext → Gemini Plan → V5 Platform Prompts → Master Pack.
 
-import { engineConfig, updateConfig, SHOT_COLORS, API_KEY_STORAGE, PERSONAS, ENERGY_LEVELS } from './config.js?v=202604301437';
-import { state } from './state.js?v=202604301437';
-import { delay, escapeForAttr } from './utils.js?v=202604301437';
+import { engineConfig, updateConfig, SHOT_COLORS, API_KEY_STORAGE, PERSONAS, ENERGY_LEVELS } from './config.js?v=202604301651';
+import { state } from './state.js?v=202604301651';
+import { delay, escapeForAttr } from './utils.js?v=202604301651';
 import {
   callAI,
   saveApiKeyToStorage,
@@ -17,16 +17,16 @@ import {
   saveOpenRouterApiKeyToStorage,
   getOpenRouterModel,
   saveOpenRouterModelToStorage
-} from './api.js?v=202604301437';
-import { getImagePlatformLabel, getVideoPlatformLabel } from './promptBuilder.js?v=202604301437';
-import { buildContext } from './engine/buildContext.js?v=202604301437';
-import { buildGeminiPrompt } from './engine/buildGeminiPrompt.js?v=202604301437';
-import { buildCreativePlan } from './engine/routeContent.js?v=202604301437';
-import { buildOutputPack } from './engine/buildOutput.js?v=202604301437';
+} from './api.js?v=202604301651';
+import { getImagePlatformLabel, getVideoPlatformLabel } from './promptBuilder.js?v=202604301651';
+import { buildContext } from './engine/buildContext.js?v=202604301651';
+import { buildGeminiPrompt } from './engine/buildGeminiPrompt.js?v=202604301651';
+import { buildCreativePlan } from './engine/routeContent.js?v=202604301651';
+import { buildOutputPack } from './engine/buildOutput.js?v=202604301651';
 import {
   saveSession, restoreSession, clearSession, handleFile, updateConfirmBtn,
   loadProjectList, saveCurrentProject, exportProject, importProject, loadSelectedProject
-} from './session.js?v=202604301437';
+} from './session.js?v=202604301651';
 
 // ==================== NAVIGATION ====================
 function selectMode(mode) {
@@ -158,6 +158,44 @@ function initReferenceControlUI() {
       el.addEventListener(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' ? 'input' : 'change', e => {
         state[id] = e.target.value;
         syncReferenceControlStateFromUI();
+        saveSession();
+      });
+    }
+  });
+}
+
+
+const VOICE_STYLE_FIELD_IDS = [
+  'speakingStyle',
+  'voicePersona',
+  'voiceEnergy',
+  'slangLevel',
+  'ctaStyle',
+  'voLength'
+];
+
+function syncVoiceStyleStateFromUI() {
+  VOICE_STYLE_FIELD_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) state[id] = el.value ?? state[id] ?? '';
+  });
+}
+
+function syncVoiceStyleUIFromState() {
+  VOICE_STYLE_FIELD_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && state[id] != null) el.value = state[id];
+  });
+}
+
+function initVoiceStyleUI() {
+  syncVoiceStyleUIFromState();
+  VOICE_STYLE_FIELD_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('change', e => {
+        state[id] = e.target.value;
+        syncVoiceStyleStateFromUI();
         saveSession();
       });
     }
@@ -485,7 +523,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.step-item').forEach(item => item.addEventListener('click', () => goToStep(parseInt(item.getAttribute('data-step')))));
 
   initEngineConfigUI();
-  initReferenceControlUI(); setInterval(saveSession, 3000);
+  initReferenceControlUI();
+  initVoiceStyleUI(); setInterval(saveSession, 3000);
   state.apiKey = localStorage.getItem(API_KEY_STORAGE) || '';
   loadProjectList();
   if (state.apiKey) { const apiInput = document.getElementById('apiKeyInput'); if (apiInput) apiInput.value = state.apiKey; const warn = document.getElementById('apiWarning'); if (warn) warn.innerHTML = '&#10003; Tersimpan'; }

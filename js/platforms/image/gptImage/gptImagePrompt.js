@@ -1,6 +1,6 @@
-import { buildCharacterPrefix, buildProductReferencePhrase, buildReferenceControlBlock } from '../../../shared/referenceHandler.js?v=202604301437';
-import { buildImagePromptBase, buildModeImageStyle, stripVideoOnlyTerms } from '../shared/imagePromptUtils.js?v=202604301437';
-import { buildGPTImageNegative } from './gptImageNegative.js?v=202604301437';
+import { buildCharacterPrefix, buildProductReferencePhrase, buildReferenceControlBlock } from '../../../shared/referenceHandler.js?v=202604301651';
+import { buildImagePromptBase, buildModeImageStyle, stripVideoOnlyTerms } from '../shared/imagePromptUtils.js?v=202604301651';
+import { buildGPTImageNegative } from './gptImageNegative.js?v=202604301651';
 
 export function buildGPTImagePrompt(params) {
     const {

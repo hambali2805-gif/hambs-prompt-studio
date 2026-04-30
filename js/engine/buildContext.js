@@ -1,19 +1,20 @@
-import { state } from '../state.js?v=202604301437';
-import { engineConfig } from '../config.js?v=202604301437';
-import { detectProductType } from '../intelligence/productTypeDetector.js?v=202604301437';
-import { applyCategoryQualityProfile, cleanNegativePromptByCategory } from '../intelligence/categoryQualityProfiles.js?v=202604301437';
-import { inferPresentationType, getPresentationProfile } from '../intelligence/presentationProfiles.js?v=202604301437';
-import { normalizeVideoStyle, getVideoStyleProfile } from '../intelligence/videoStyleProfiles.js?v=202604301437';
-import { getPersonaProfile } from '../intelligence/personaProfiles.js?v=202604301437';
-import { getSpeechStyleProfile } from '../intelligence/speechStyleProfiles.js?v=202604301437';
-import { adaptBackgroundForContext } from '../intelligence/backgroundCompatibility.js?v=202604301437';
-import { getPlatformProfile, normalizeTargetPlatform } from '../intelligence/platformProfiles.js?v=202604301437';
-import { getImageEngineProfile, getVideoEngineProfile } from '../intelligence/engineProfiles.js?v=202604301437';
-import { buildCreativeBrief } from './buildCreativeBrief.js?v=202604301437';
-import { buildReferenceControl } from './buildReferenceControl.js?v=202604301437';
-import { getGenderSubject } from '../shared/subjectUtils.js?v=202604301437';
-import { buildReferenceDirectives } from '../shared/referenceHandler.js?v=202604301437';
-import { buildNegativePrompt } from '../shared/negativePrompt.js?v=202604301437';
+import { applyVoiceStyleProfile } from '../intelligence/voiceStyleProfiles.js?v=202604301651';
+import { state } from '../state.js?v=202604301651';
+import { engineConfig } from '../config.js?v=202604301651';
+import { detectProductType } from '../intelligence/productTypeDetector.js?v=202604301651';
+import { applyCategoryQualityProfile, cleanNegativePromptByCategory } from '../intelligence/categoryQualityProfiles.js?v=202604301651';
+import { inferPresentationType, getPresentationProfile } from '../intelligence/presentationProfiles.js?v=202604301651';
+import { normalizeVideoStyle, getVideoStyleProfile } from '../intelligence/videoStyleProfiles.js?v=202604301651';
+import { getPersonaProfile } from '../intelligence/personaProfiles.js?v=202604301651';
+import { getSpeechStyleProfile } from '../intelligence/speechStyleProfiles.js?v=202604301651';
+import { adaptBackgroundForContext } from '../intelligence/backgroundCompatibility.js?v=202604301651';
+import { getPlatformProfile, normalizeTargetPlatform } from '../intelligence/platformProfiles.js?v=202604301651';
+import { getImageEngineProfile, getVideoEngineProfile } from '../intelligence/engineProfiles.js?v=202604301651';
+import { buildCreativeBrief } from './buildCreativeBrief.js?v=202604301651';
+import { buildReferenceControl } from './buildReferenceControl.js?v=202604301651';
+import { getGenderSubject } from '../shared/subjectUtils.js?v=202604301651';
+import { buildReferenceDirectives } from '../shared/referenceHandler.js?v=202604301651';
+import { buildNegativePrompt } from '../shared/negativePrompt.js?v=202604301651';
 
 
 function applyCategoryPresentationOverride(ctx) {
@@ -155,6 +156,7 @@ export function buildContext(){
  }
  base.negativePrompt=buildNegativePrompt(base);
  base.negativePrompt=cleanNegativePromptByCategory(base, base.negativePrompt);
+ applyVoiceStyleProfile(base, state);
  base.creativeBrief=buildCreativeBrief(base);
  return base;
 }

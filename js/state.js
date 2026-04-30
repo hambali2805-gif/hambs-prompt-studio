@@ -12,6 +12,13 @@ export const state = {
     presentationKeywords: 'Direct eye contact, framing: medium close-up, hand gestures, expressive facial expressions, talking to camera, FaceTime-style framing.',
     presentationType: 'talking_head',
     selectedTone: 'jaksel',
+
+    speakingStyle: 'casual_indonesia',
+    voicePersona: 'reviewer',
+    voiceEnergy: 'medium',
+    slangLevel: 'light',
+    ctaStyle: 'soft_cta',
+    voLength: 'short',
     lensStyle: 'portrait',
     targetPlatform: 'multi_platform',
     contentGoal: 'viral_relatable',

@@ -1,6 +1,7 @@
-import { sanitizeCreativeTextByCategory, guardSceneActionByCategory, normalizeScenePieceByCategory } from '../intelligence/categoryQualityProfiles.js?v=202604301437';
-import { stripMarkdownFences, compact } from '../shared/textCleaner.js?v=202604301437';
-import { ensureSubject } from '../shared/subjectUtils.js?v=202604301437';
+import { sanitizeVoiceoverText } from '../intelligence/voiceStyleProfiles.js?v=202604301651';
+import { sanitizeCreativeTextByCategory, guardSceneActionByCategory, normalizeScenePieceByCategory } from '../intelligence/categoryQualityProfiles.js?v=202604301651';
+import { stripMarkdownFences, compact } from '../shared/textCleaner.js?v=202604301651';
+import { ensureSubject } from '../shared/subjectUtils.js?v=202604301651';
 
 export function parseGeminiPlan(raw){
  if(!raw) return null;
@@ -109,7 +110,8 @@ function normalizePlan(plan, ctx, fallback, aiSource = 'ai'){
    const s=plan.scenes[i] || fallbackScene(ctx,i);
 
    const phase = sanitizeCreativeText(compact(s.phase)||beat.phase||defaultPhase(ctx,i), 'phase', ctx);
-   const vo = localizeVOText(sanitizeCreativeText(compact(s.vo)||fallbackVO(ctx,i), 'vo', ctx), ctx);
+   let vo = localizeVOText(sanitizeCreativeText(compact(s.vo)||fallbackVO(ctx,i), 'vo', ctx), ctx);
+   vo = sanitizeVoiceoverText(vo, ctx, { phase, index:i });
    let visualSummary = sanitizeCreativeText(compact(s.visualSummary || s.description) || fallbackDescription(ctx,i), 'visualSummary', ctx);
    const rawMainAction = sanitizeCreativeText(compact(s.mainAction || s.action) || beat.action || pick(ctx.rules.actions, i) || 'natural product interaction', 'mainAction', ctx);
    const mainAction = guardSceneAction(rawMainAction, phase, ctx, i);

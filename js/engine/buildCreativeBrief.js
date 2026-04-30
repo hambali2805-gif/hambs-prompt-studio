@@ -107,6 +107,18 @@ Product Visibility: ${labelValue(ctx.productVisibility, 'balanced')}
 
 ${ctx.referenceControl?.creativeBriefBlock || ''}
 
+[VOICE STYLE]
+Speaking Style: ${ctx.voiceStyle?.speakingStyleLabel || 'Casual Indonesia'}
+Persona: ${ctx.voiceStyle?.personaLabel || 'Reviewer'}
+Energy: ${ctx.voiceStyle?.energyLabel || 'Medium'}
+Slang Level: ${ctx.voiceStyle?.slangLabel || 'Light'}
+CTA Style: ${ctx.voiceStyle?.ctaLabel || 'Soft CTA'}
+VO Length: ${ctx.voiceStyle?.lengthLabel || 'Short'}
+Compatibility: ${ctx.voiceStyle?.categoryVoiceCompatibility || 'compatible'}
+Allowed Expressions: ${(ctx.voiceStyle?.allowedExpressions || []).join(', ')}
+Avoid Expressions: ${(ctx.voiceStyle?.avoidExpressions || []).join(', ')}
+Voice Rules: ${(ctx.voiceStyle?.rules || []).join(' | ')}
+
 [ENGINE]
 Image Engine: ${imageEngine.label || ctx.imageModel}
 Image Engine Role: ${imageEngine.role || 'image prompt'}
