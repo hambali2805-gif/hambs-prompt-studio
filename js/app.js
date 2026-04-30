@@ -2,9 +2,9 @@
 // UI/API tetap, semua generator lama dipensiunkan. Generation path:
 // UI → buildContext → Gemini Plan → V5 Platform Prompts → Master Pack.
 
-import { engineConfig, updateConfig, SHOT_COLORS, API_KEY_STORAGE, PERSONAS, ENERGY_LEVELS } from './config.js?v=202604300848';
-import { state } from './state.js?v=202604300848';
-import { delay, escapeForAttr } from './utils.js?v=202604300848';
+import { engineConfig, updateConfig, SHOT_COLORS, API_KEY_STORAGE, PERSONAS, ENERGY_LEVELS } from './config.js?v=202604300933';
+import { state } from './state.js?v=202604300933';
+import { delay, escapeForAttr } from './utils.js?v=202604300933';
 import {
   callAI,
   saveApiKeyToStorage,
@@ -17,16 +17,16 @@ import {
   saveOpenRouterApiKeyToStorage,
   getOpenRouterModel,
   saveOpenRouterModelToStorage
-} from './api.js?v=202604300848';
-import { getImagePlatformLabel, getVideoPlatformLabel } from './promptBuilder.js?v=202604300848';
-import { buildContext } from './engine/buildContext.js?v=202604300848';
-import { buildGeminiPrompt } from './engine/buildGeminiPrompt.js?v=202604300848';
-import { buildCreativePlan } from './engine/routeContent.js?v=202604300848';
-import { buildOutputPack } from './engine/buildOutput.js?v=202604300848';
+} from './api.js?v=202604300933';
+import { getImagePlatformLabel, getVideoPlatformLabel } from './promptBuilder.js?v=202604300933';
+import { buildContext } from './engine/buildContext.js?v=202604300933';
+import { buildGeminiPrompt } from './engine/buildGeminiPrompt.js?v=202604300933';
+import { buildCreativePlan } from './engine/routeContent.js?v=202604300933';
+import { buildOutputPack } from './engine/buildOutput.js?v=202604300933';
 import {
   saveSession, restoreSession, clearSession, handleFile, updateConfirmBtn,
   loadProjectList, saveCurrentProject, exportProject, importProject, loadSelectedProject
-} from './session.js?v=202604300848';
+} from './session.js?v=202604300933';
 
 // ==================== NAVIGATION ====================
 function selectMode(mode) {
@@ -100,6 +100,67 @@ function syncStrategyUIFromState() {
   STRATEGY_FIELD_IDS.forEach(id => {
     const el = document.getElementById(id);
     if (el && state[id] != null) el.value = state[id];
+  });
+}
+
+
+const REFERENCE_CONTROL_FIELD_IDS = [
+  'characterMode','characterGender','characterAgeRange','characterLock','outfitLock','characterNotes',
+  'backgroundMode','backgroundLock','backgroundLabel','backgroundDescription','lightingLock','continuityStrength',
+  'productRef1Role','productRef2Role','productRef3Role','productRef4Role',
+  'productRef1Instruction','productRef2Instruction','productRef3Instruction','productRef4Instruction',
+  'scene1ProductRefs','scene2ProductRefs','scene3ProductRefs','scene4ProductRefs','scene5ProductRefs',
+  'scene6ProductRefs','scene7ProductRefs','scene8ProductRefs','scene9ProductRefs','scene10ProductRefs',
+  'scene1ProductVisibility','scene2ProductVisibility','scene3ProductVisibility','scene4ProductVisibility','scene5ProductVisibility',
+  'scene6ProductVisibility','scene7ProductVisibility','scene8ProductVisibility','scene9ProductVisibility','scene10ProductVisibility',
+  'scene1ProductRole','scene2ProductRole','scene3ProductRole','scene4ProductRole','scene5ProductRole',
+  'scene6ProductRole','scene7ProductRole','scene8ProductRole','scene9ProductRole','scene10ProductRole',
+  'scene1ProductInstruction','scene2ProductInstruction','scene3ProductInstruction','scene4ProductInstruction','scene5ProductInstruction',
+  'scene6ProductInstruction','scene7ProductInstruction','scene8ProductInstruction','scene9ProductInstruction','scene10ProductInstruction'
+];
+
+function syncReferenceControlStateFromUI() {
+  REFERENCE_CONTROL_FIELD_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) state[id] = el.value ?? state[id] ?? '';
+  });
+
+  state.productRefRoles = {};
+  state.productRefInstructions = {};
+  for (let i = 1; i <= 4; i++) {
+    state.productRefRoles[`prod${i}`] = state[`productRef${i}Role`] || 'auto';
+    state.productRefInstructions[`prod${i}`] = state[`productRef${i}Instruction`] || '';
+  }
+
+  state.sceneProductRefMap = {};
+  for (let i = 1; i <= 10; i++) {
+    state.sceneProductRefMap[String(i)] = {
+      refs: state[`scene${i}ProductRefs`] || 'auto',
+      visibility: state[`scene${i}ProductVisibility`] || 'balanced',
+      role: state[`scene${i}ProductRole`] || '',
+      instruction: state[`scene${i}ProductInstruction`] || ''
+    };
+  }
+}
+
+function syncReferenceControlUIFromState() {
+  REFERENCE_CONTROL_FIELD_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && state[id] != null) el.value = state[id];
+  });
+}
+
+function initReferenceControlUI() {
+  syncReferenceControlUIFromState();
+  REFERENCE_CONTROL_FIELD_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' ? 'input' : 'change', e => {
+        state[id] = e.target.value;
+        syncReferenceControlStateFromUI();
+        saveSession();
+      });
+    }
   });
 }
 
@@ -423,7 +484,8 @@ document.addEventListener('DOMContentLoaded', () => {
   bind('copyAllBtn','click',() => copyAll(document.getElementById('copyAllBtn'))); bind('copyVOBtn','click',() => copyVO(document.getElementById('copyVOBtn')));
   document.querySelectorAll('.step-item').forEach(item => item.addEventListener('click', () => goToStep(parseInt(item.getAttribute('data-step')))));
 
-  initEngineConfigUI(); setInterval(saveSession, 3000);
+  initEngineConfigUI();
+  initReferenceControlUI(); setInterval(saveSession, 3000);
   state.apiKey = localStorage.getItem(API_KEY_STORAGE) || '';
   loadProjectList();
   if (state.apiKey) { const apiInput = document.getElementById('apiKeyInput'); if (apiInput) apiInput.value = state.apiKey; const warn = document.getElementById('apiWarning'); if (warn) warn.innerHTML = '&#10003; Tersimpan'; }

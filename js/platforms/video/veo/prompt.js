@@ -11,6 +11,9 @@ export function buildVeoPrompt(ctx,scene,index){
   `Lighting/visual: ${ctx.platformProfile?.visual || ctx.videoStyle.visual}. Pace: ${ctx.platformProfile?.pacing || ctx.videoStyle.pace}.`,
   `Veo engine rules: ${list(engine.promptRules)}.`,
   `Keep continuity of ${ctx.gender.subj}, ${ctx.productName}, packaging, scale, background, and action logic. ${scene.continuity}.`,
+  `Character continuity: ${ctx.referenceControl?.characterAnchor || 'keep same character if present'}.`,
+  `Background continuity: ${ctx.referenceControl?.backgroundAnchor || 'keep same background logic'}.`,
+  `Product reference continuity: ${ctx.referenceControl?.sceneBlocks?.[String(index+1)] || 'auto product reference continuity'}.`,
   `Product type: ${ctx.productTypeLabel}; visible proof must include ${list(scene.mustInclude)}.`,
   `Background: ${ctx.background.directive}. Product visibility: ${ctx.productVisibility}.`,
   `Avoid: ${ctx.negativePrompt}. ${list(engine.negativeRules)}. No fake claims, no extra limbs, no product redesign.`

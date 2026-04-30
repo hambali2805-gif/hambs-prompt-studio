@@ -6,7 +6,7 @@
     <title>HAMBS AI Video Content Engine</title>
     <link href="https://cdn.jsdelivr.net/npm/fontsource-inter@5.0/index.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <link rel="stylesheet" href="style.css?v=202604300848">
+    <link rel="stylesheet" href="style.css?v=202604300933">
 </head>
 <body>
 
@@ -259,6 +259,201 @@
                 </div>
             </div>
 
+
+            <div class="form-section" id="referenceControlFields">
+                <div class="form-section-title">🧩 CHARACTER / BACKGROUND / PRODUCT REFERENCES</div>
+
+                <div class="engine-config-grid">
+                    <div class="config-item">
+                        <label class="config-label">👤 Character Mode</label>
+                        <select id="characterMode" class="config-select">
+                            <option value="auto" selected>Auto</option>
+                            <option value="single">Single Character</option>
+                            <option value="couple">Couple</option>
+                            <option value="group">Group</option>
+                            <option value="product_only">Product Only / No Character</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label class="config-label">🚻 Character Gender</label>
+                        <select id="characterGender" class="config-select">
+                            <option value="auto" selected>Auto</option>
+                            <option value="female">Female / Wanita</option>
+                            <option value="male">Male / Pria</option>
+                            <option value="mixed">Mixed</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label class="config-label">🎂 Age Range</label>
+                        <select id="characterAgeRange" class="config-select">
+                            <option value="auto">Auto</option>
+                            <option value="teen">Teen</option>
+                            <option value="young_adult" selected>Young Adult</option>
+                            <option value="adult">Adult</option>
+                            <option value="mature">Mature</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label class="config-label">🔒 Character Lock</label>
+                        <select id="characterLock" class="config-select">
+                            <option value="off">Off</option>
+                            <option value="soft">Soft</option>
+                            <option value="strong" selected>Strong</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label class="config-label">👕 Outfit Lock</label>
+                        <select id="outfitLock" class="config-select">
+                            <option value="off">Off</option>
+                            <option value="same_style">Same Style Only</option>
+                            <option value="same_outfit" selected>Same Outfit</option>
+                        </select>
+                    </div>
+                    <div class="config-item config-item-full">
+                        <label class="config-label">📝 Character Notes</label>
+                        <input id="characterNotes" class="text-input" placeholder="Contoh: wanita Indonesia muda, casual home outfit, ekspresi natural">
+                    </div>
+                </div>
+
+                <div class="engine-config-grid">
+                    <div class="config-item">
+                        <label class="config-label">🏠 Background Mode</label>
+                        <select id="backgroundMode" class="config-select">
+                            <option value="auto_by_category">Auto by Category</option>
+                            <option value="fixed" selected>Fixed Background</option>
+                            <option value="flexible_same_style">Flexible Same Style</option>
+                            <option value="follow_uploaded_reference">Follow Uploaded Reference</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label class="config-label">🔒 Background Lock</label>
+                        <select id="backgroundLock" class="config-select">
+                            <option value="off">Off</option>
+                            <option value="soft">Soft</option>
+                            <option value="strong" selected>Strong</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label class="config-label">💡 Lighting Lock</label>
+                        <select id="lightingLock" class="config-select">
+                            <option value="auto">Auto</option>
+                            <option value="same_lighting">Same Lighting</option>
+                            <option value="same_mood" selected>Same Mood Only</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label class="config-label">🧷 Continuity</label>
+                        <select id="continuityStrength" class="config-select">
+                            <option value="normal">Normal</option>
+                            <option value="strong" selected>Strong</option>
+                        </select>
+                    </div>
+                    <div class="config-item config-item-full">
+                        <label class="config-label">🏷️ Background Label</label>
+                        <input id="backgroundLabel" class="text-input" placeholder="Contoh: Cozy Kitchen A">
+                    </div>
+                    <div class="config-item config-item-full">
+                        <label class="config-label">🏠 Background Description / Lock Prompt</label>
+                        <textarea id="backgroundDescription" class="text-area" placeholder="Contoh: cozy home kitchen, white quartz countertop, subway tiles, wooden cutting board, warm evening light"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section-title">📦 PRODUCT REF 1–4 ROLE</div>
+                <div class="engine-config-grid">
+                    <div class="config-item">
+                        <label class="config-label">Ref 1 Role</label>
+                        <select id="productRef1Role" class="config-select">
+                            <option value="auto">Auto</option>
+                            <option value="main_packaging" selected>Main Packaging</option>
+                            <option value="product_hero">Product Hero</option>
+                            <option value="product_in_use">Product In Use</option>
+                            <option value="texture_detail">Texture / Detail</option>
+                            <option value="serving_result">Serving / Result</option>
+                            <option value="variant">Variant</option>
+                            <option value="bundle">Bundle / Final Setup</option>
+                            <option value="before_state">Before State</option>
+                            <option value="after_state">After State</option>
+                            <option value="closeup_label">Close-up Label</option>
+                            <option value="accessory_props">Accessory / Props</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                        <input id="productRef1Instruction" class="text-input" placeholder="Instruksi Ref 1 opsional">
+                    </div>
+                    <div class="config-item">
+                        <label class="config-label">Ref 2 Role</label>
+                        <select id="productRef2Role" class="config-select">
+                            <option value="auto">Auto</option>
+                            <option value="main_packaging">Main Packaging</option>
+                            <option value="product_hero">Product Hero</option>
+                            <option value="product_in_use">Product In Use</option>
+                            <option value="texture_detail">Texture / Detail</option>
+                            <option value="serving_result" selected>Serving / Result</option>
+                            <option value="variant">Variant</option>
+                            <option value="bundle">Bundle / Final Setup</option>
+                            <option value="before_state">Before State</option>
+                            <option value="after_state">After State</option>
+                            <option value="closeup_label">Close-up Label</option>
+                            <option value="accessory_props">Accessory / Props</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                        <input id="productRef2Instruction" class="text-input" placeholder="Instruksi Ref 2 opsional">
+                    </div>
+                    <div class="config-item">
+                        <label class="config-label">Ref 3 Role</label>
+                        <select id="productRef3Role" class="config-select">
+                            <option value="auto">Auto</option>
+                            <option value="main_packaging">Main Packaging</option>
+                            <option value="product_hero">Product Hero</option>
+                            <option value="product_in_use">Product In Use</option>
+                            <option value="texture_detail" selected>Texture / Detail</option>
+                            <option value="serving_result">Serving / Result</option>
+                            <option value="variant">Variant</option>
+                            <option value="bundle">Bundle / Final Setup</option>
+                            <option value="before_state">Before State</option>
+                            <option value="after_state">After State</option>
+                            <option value="closeup_label">Close-up Label</option>
+                            <option value="accessory_props">Accessory / Props</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                        <input id="productRef3Instruction" class="text-input" placeholder="Instruksi Ref 3 opsional">
+                    </div>
+                    <div class="config-item">
+                        <label class="config-label">Ref 4 Role</label>
+                        <select id="productRef4Role" class="config-select">
+                            <option value="auto">Auto</option>
+                            <option value="main_packaging">Main Packaging</option>
+                            <option value="product_hero">Product Hero</option>
+                            <option value="product_in_use">Product In Use</option>
+                            <option value="texture_detail">Texture / Detail</option>
+                            <option value="serving_result">Serving / Result</option>
+                            <option value="variant">Variant</option>
+                            <option value="bundle" selected>Bundle / Final Setup</option>
+                            <option value="before_state">Before State</option>
+                            <option value="after_state">After State</option>
+                            <option value="closeup_label">Close-up Label</option>
+                            <option value="accessory_props">Accessory / Props</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                        <input id="productRef4Instruction" class="text-input" placeholder="Instruksi Ref 4 opsional">
+                    </div>
+                </div>
+
+                <div class="form-section-title">🎬 SCENE PRODUCT REFERENCE MAP</div>
+                <p class="config-hint">Isi refs dengan: auto, none, ref1, ref2, ref3, ref4, atau kombinasi seperti ref1+ref2+ref3.</p>
+                <div class="engine-config-grid">
+                    <div class="config-item"><label class="config-label">Scene 1 Refs</label><input id="scene1ProductRefs" class="text-input" value="auto"><select id="scene1ProductVisibility" class="config-select"><option value="subtle" selected>Subtle</option><option value="balanced">Balanced</option><option value="strong">Strong</option><option value="hero">Hero</option></select><input id="scene1ProductRole" class="text-input" placeholder="Role scene 1"><input id="scene1ProductInstruction" class="text-input" placeholder="Instruksi scene 1"></div>
+                    <div class="config-item"><label class="config-label">Scene 2 Refs</label><input id="scene2ProductRefs" class="text-input" value="auto"><select id="scene2ProductVisibility" class="config-select"><option value="subtle">Subtle</option><option value="balanced" selected>Balanced</option><option value="strong">Strong</option><option value="hero">Hero</option></select><input id="scene2ProductRole" class="text-input" placeholder="Role scene 2"><input id="scene2ProductInstruction" class="text-input" placeholder="Instruksi scene 2"></div>
+                    <div class="config-item"><label class="config-label">Scene 3 Refs</label><input id="scene3ProductRefs" class="text-input" value="auto"><select id="scene3ProductVisibility" class="config-select"><option value="subtle">Subtle</option><option value="balanced">Balanced</option><option value="strong" selected>Strong</option><option value="hero">Hero</option></select><input id="scene3ProductRole" class="text-input" placeholder="Role scene 3"><input id="scene3ProductInstruction" class="text-input" placeholder="Instruksi scene 3"></div>
+                    <div class="config-item"><label class="config-label">Scene 4 Refs</label><input id="scene4ProductRefs" class="text-input" value="auto"><select id="scene4ProductVisibility" class="config-select"><option value="subtle">Subtle</option><option value="balanced">Balanced</option><option value="strong" selected>Strong</option><option value="hero">Hero</option></select><input id="scene4ProductRole" class="text-input" placeholder="Role scene 4"><input id="scene4ProductInstruction" class="text-input" placeholder="Instruksi scene 4"></div>
+                    <div class="config-item"><label class="config-label">Scene 5 Refs</label><input id="scene5ProductRefs" class="text-input" value="auto"><select id="scene5ProductVisibility" class="config-select"><option value="subtle">Subtle</option><option value="balanced" selected>Balanced</option><option value="strong">Strong</option><option value="hero">Hero</option></select><input id="scene5ProductRole" class="text-input" placeholder="Role scene 5"><input id="scene5ProductInstruction" class="text-input" placeholder="Instruksi scene 5"></div>
+                    <div class="config-item"><label class="config-label">Scene 6 Refs</label><input id="scene6ProductRefs" class="text-input" value="auto"><select id="scene6ProductVisibility" class="config-select"><option value="subtle">Subtle</option><option value="balanced" selected>Balanced</option><option value="strong">Strong</option><option value="hero">Hero</option></select><input id="scene6ProductRole" class="text-input" placeholder="Role scene 6"><input id="scene6ProductInstruction" class="text-input" placeholder="Instruksi scene 6"></div>
+                    <div class="config-item"><label class="config-label">Scene 7 Refs</label><input id="scene7ProductRefs" class="text-input" value="auto"><select id="scene7ProductVisibility" class="config-select"><option value="subtle">Subtle</option><option value="balanced">Balanced</option><option value="strong" selected>Strong</option><option value="hero">Hero</option></select><input id="scene7ProductRole" class="text-input" placeholder="Role scene 7"><input id="scene7ProductInstruction" class="text-input" placeholder="Instruksi scene 7"></div>
+                    <div class="config-item"><label class="config-label">Scene 8 Refs</label><input id="scene8ProductRefs" class="text-input" value="auto"><select id="scene8ProductVisibility" class="config-select"><option value="subtle">Subtle</option><option value="balanced" selected>Balanced</option><option value="strong">Strong</option><option value="hero">Hero</option></select><input id="scene8ProductRole" class="text-input" placeholder="Role scene 8"><input id="scene8ProductInstruction" class="text-input" placeholder="Instruksi scene 8"></div>
+                    <div class="config-item"><label class="config-label">Scene 9 Refs</label><input id="scene9ProductRefs" class="text-input" value="auto"><select id="scene9ProductVisibility" class="config-select"><option value="subtle">Subtle</option><option value="balanced">Balanced</option><option value="strong">Strong</option><option value="hero" selected>Hero</option></select><input id="scene9ProductRole" class="text-input" placeholder="Role scene 9"><input id="scene9ProductInstruction" class="text-input" placeholder="Instruksi scene 9"></div>
+                    <div class="config-item"><label class="config-label">Scene 10 Refs</label><input id="scene10ProductRefs" class="text-input" value="auto"><select id="scene10ProductVisibility" class="config-select"><option value="subtle">Subtle</option><option value="balanced">Balanced</option><option value="strong" selected>Strong</option><option value="hero">Hero</option></select><input id="scene10ProductRole" class="text-input" placeholder="Role scene 10"><input id="scene10ProductInstruction" class="text-input" placeholder="Instruksi scene 10"></div>
+                </div>
+            </div>
+
 <div class="form-section"><div class="form-section-title">KATEGORI</div><div class="options-grid" id="categoryGrid">
                 <button class="option-btn">SKINCARE</button><button class="option-btn selected">FASHION</button><button class="option-btn">MAKANAN</button><button class="option-btn">MINUMAN</button><button class="option-btn">ELEKTRONIK</button>
             </div></div>
@@ -370,6 +565,6 @@
     <span>💾 Sesi Tersimpan</span>
 </div>
 
-<script type="module" src="js/app.js?v=202604300848"></script>
+<script type="module" src="js/app.js?v=202604300933"></script>
 </body>
 </html>

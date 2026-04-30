@@ -1,6 +1,6 @@
-import { buildImagePromptByPlatform } from '../platforms/image/index.js?v=202604300848';
-import { buildVideoPromptByPlatform } from '../platforms/video/index.js?v=202604300848';
-import { validateSceneSet } from '../shared/validationUtils.js?v=202604300848';
+import { buildImagePromptByPlatform } from '../platforms/image/index.js?v=202604300933';
+import { buildVideoPromptByPlatform } from '../platforms/video/index.js?v=202604300933';
+import { validateSceneSet } from '../shared/validationUtils.js?v=202604300933';
 
 export function buildOutputPack(plan, ctx){
  const sceneVOs=plan.scenes.map((s,i)=>({
@@ -31,7 +31,8 @@ export function buildOutputPack(plan, ctx){
      sceneVO:sceneVOs[i],
      mainAction:s.mainAction,
      cameraDirection:s.cameraDirection,
-     continuity:s.continuity
+     continuity:s.continuity,
+     productReferenceBlock:ctx.referenceControl?.sceneBlocks?.[String(i+1)] || ''
    };
  });
 
@@ -53,6 +54,7 @@ export function buildOutputPack(plan, ctx){
      mainAction:sceneVOs[i].mainAction,
      cameraDirection:sceneVOs[i].cameraDirection,
      continuity:sceneVOs[i].continuity,
+     productReferenceBlock:sceneVOs[i].productReferenceBlock,
      imagePlatform:ctx.imageModel,
      videoPlatform:ctx.videoModel,
      visual_prompt:shot.imagePrompt,
@@ -96,7 +98,8 @@ export function buildOutputPack(plan, ctx){
      creativeBrief:ctx.creativeBrief,
      platformProfile:ctx.platformProfile,
      imageEngineProfile:ctx.imageEngineProfile,
-     videoEngineProfile:ctx.videoEngineProfile
+     videoEngineProfile:ctx.videoEngineProfile,
+     referenceControl:ctx.referenceControl
    }
  };
 

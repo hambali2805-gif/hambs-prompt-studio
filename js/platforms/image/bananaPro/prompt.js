@@ -14,6 +14,9 @@ export function buildBananaProPrompt(ctx,scene,index){
   `Continuity: ${scene.continuity}.`,
   `Background: ${ctx.background.directive}.`,
   `Reference rules: ${ctx.referenceDirectives.summary}`,
+  `Character anchor: ${ctx.referenceControl?.characterAnchor || 'keep character continuity if present'}.`,
+  `Background anchor: ${ctx.referenceControl?.backgroundAnchor || 'keep background continuity'}.`,
+  `Product references for this scene: ${ctx.referenceControl?.sceneBlocks?.[String(index+1)] || 'auto product reference continuity'}.`,
   `Negative: ${ctx.negativePrompt}.`
  ].join(' ');
 }

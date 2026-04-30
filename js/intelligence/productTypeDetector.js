@@ -3,7 +3,7 @@ import {
   normalizeCategory,
   getDefaultTypeForCategory,
   getRulesForType
-} from './productTypeRules.js?v=202604300848';
+} from './productTypeRules.js?v=202604300933';
 
 const norm = t => String(t || '')
   .toLowerCase()

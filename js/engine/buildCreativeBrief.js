@@ -105,6 +105,8 @@ Camera Style: ${ctx.cameraStyle || ctx.videoStyle?.camera || 'auto'}
 Lens Style: ${ctx.lensStyle}
 Product Visibility: ${labelValue(ctx.productVisibility, 'balanced')}
 
+${ctx.referenceControl?.creativeBriefBlock || ''}
+
 [ENGINE]
 Image Engine: ${imageEngine.label || ctx.imageModel}
 Image Engine Role: ${imageEngine.role || 'image prompt'}

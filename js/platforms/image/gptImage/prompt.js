@@ -13,6 +13,9 @@ export function buildGptImagePrompt(ctx,scene,index){
   `Product: ${ctx.productName}; visibility: ${ctx.productVisibility}; preserve reference details: ${list(ctx.rules.referenceFocus)}.`,
   `Image engine rules: ${list(engine.promptRules)}.`,
   `Character/reference instruction: ${ctx.referenceDirectives.summary}.`,
+  `Character anchor: ${ctx.referenceControl?.characterAnchor || 'keep character continuity if present'}.`,
+  `Background anchor: ${ctx.referenceControl?.backgroundAnchor || 'keep background continuity'}.`,
+  `Product references for this scene: ${ctx.referenceControl?.sceneBlocks?.[String(index+1)] || 'auto product reference continuity'}.`,
   `Background adaptation: ${ctx.background.directive}. Continuity: ${scene.continuity}.`,
   `Avoid: ${list([...(scene.avoid||[]), ...(engine.negativeRules||[]), ctx.negativePrompt])}.`
  ].join(' ');

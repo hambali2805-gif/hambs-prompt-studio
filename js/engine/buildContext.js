@@ -1,17 +1,17 @@
-import { state } from '../state.js?v=202604300848';
-import { engineConfig } from '../config.js?v=202604300848';
-import { detectProductType } from '../intelligence/productTypeDetector.js?v=202604300848';
-import { inferPresentationType, getPresentationProfile } from '../intelligence/presentationProfiles.js?v=202604300848';
-import { normalizeVideoStyle, getVideoStyleProfile } from '../intelligence/videoStyleProfiles.js?v=202604300848';
-import { getPersonaProfile } from '../intelligence/personaProfiles.js?v=202604300848';
-import { getSpeechStyleProfile } from '../intelligence/speechStyleProfiles.js?v=202604300848';
-import { adaptBackgroundForContext } from '../intelligence/backgroundCompatibility.js?v=202604300848';
-import { getPlatformProfile, normalizeTargetPlatform } from '../intelligence/platformProfiles.js?v=202604300848';
-import { getImageEngineProfile, getVideoEngineProfile } from '../intelligence/engineProfiles.js?v=202604300848';
-import { buildCreativeBrief } from './buildCreativeBrief.js?v=202604300848';
-import { getGenderSubject } from '../shared/subjectUtils.js?v=202604300848';
-import { buildReferenceDirectives } from '../shared/referenceHandler.js?v=202604300848';
-import { buildNegativePrompt } from '../shared/negativePrompt.js?v=202604300848';
+import { state } from '../state.js?v=202604300933';
+import { engineConfig } from '../config.js?v=202604300933';
+import { detectProductType } from '../intelligence/productTypeDetector.js?v=202604300933';
+import { inferPresentationType, getPresentationProfile } from '../intelligence/presentationProfiles.js?v=202604300933';
+import { normalizeVideoStyle, getVideoStyleProfile } from '../intelligence/videoStyleProfiles.js?v=202604300933';
+import { getPersonaProfile } from '../intelligence/personaProfiles.js?v=202604300933';
+import { getSpeechStyleProfile } from '../intelligence/speechStyleProfiles.js?v=202604300933';
+import { adaptBackgroundForContext } from '../intelligence/backgroundCompatibility.js?v=202604300933';
+import { getPlatformProfile, normalizeTargetPlatform } from '../intelligence/platformProfiles.js?v=202604300933';
+import { getImageEngineProfile, getVideoEngineProfile } from '../intelligence/engineProfiles.js?v=202604300933';
+import { buildCreativeBrief } from './buildCreativeBrief.js?v=202604300933';
+import { getGenderSubject } from '../shared/subjectUtils.js?v=202604300933';
+import { buildReferenceDirectives } from '../shared/referenceHandler.js?v=202604300933';
+import { buildNegativePrompt } from '../shared/negativePrompt.js?v=202604300933';
 
 function resolveSceneCount(mode, duration = '15s', sceneCount = 'auto') {
   const explicit = parseInt(sceneCount, 10);
@@ -95,6 +95,17 @@ export function buildContext(){
  };
  base.background=adaptBackgroundForContext(base, state.ugcBackground||'');
  base.referenceDirectives=buildReferenceDirectives(base);
+ base.referenceControl=buildReferenceControl(base, state);
+ if (base.referenceControl?.characterControl?.subjectPhrase && base.referenceControl.characterControl.mode !== 'auto') {
+   base.gender = { ...base.gender, subj: base.referenceControl.characterControl.subjectPhrase };
+ }
+ if (base.referenceControl?.backgroundControl?.description) {
+   base.background = {
+     ...base.background,
+     directive: base.referenceControl.backgroundControl.description,
+     continuityRule: base.referenceControl.backgroundControl.continuityRule
+   };
+ }
  base.negativePrompt=buildNegativePrompt(base);
  base.creativeBrief=buildCreativeBrief(base);
  return base;
