@@ -1,17 +1,17 @@
-import { state } from '../state.js';
-import { engineConfig } from '../config.js';
-import { detectProductType } from '../intelligence/productTypeDetector.js';
-import { inferPresentationType, getPresentationProfile } from '../intelligence/presentationProfiles.js';
-import { normalizeVideoStyle, getVideoStyleProfile } from '../intelligence/videoStyleProfiles.js';
-import { getPersonaProfile } from '../intelligence/personaProfiles.js';
-import { getSpeechStyleProfile } from '../intelligence/speechStyleProfiles.js';
-import { adaptBackgroundForContext } from '../intelligence/backgroundCompatibility.js';
-import { getPlatformProfile, normalizeTargetPlatform } from '../intelligence/platformProfiles.js';
-import { getImageEngineProfile, getVideoEngineProfile } from '../intelligence/engineProfiles.js';
-import { buildCreativeBrief } from './buildCreativeBrief.js';
-import { getGenderSubject } from '../shared/subjectUtils.js';
-import { buildReferenceDirectives } from '../shared/referenceHandler.js';
-import { buildNegativePrompt } from '../shared/negativePrompt.js';
+import { state } from '../state.js?v=202604300848';
+import { engineConfig } from '../config.js?v=202604300848';
+import { detectProductType } from '../intelligence/productTypeDetector.js?v=202604300848';
+import { inferPresentationType, getPresentationProfile } from '../intelligence/presentationProfiles.js?v=202604300848';
+import { normalizeVideoStyle, getVideoStyleProfile } from '../intelligence/videoStyleProfiles.js?v=202604300848';
+import { getPersonaProfile } from '../intelligence/personaProfiles.js?v=202604300848';
+import { getSpeechStyleProfile } from '../intelligence/speechStyleProfiles.js?v=202604300848';
+import { adaptBackgroundForContext } from '../intelligence/backgroundCompatibility.js?v=202604300848';
+import { getPlatformProfile, normalizeTargetPlatform } from '../intelligence/platformProfiles.js?v=202604300848';
+import { getImageEngineProfile, getVideoEngineProfile } from '../intelligence/engineProfiles.js?v=202604300848';
+import { buildCreativeBrief } from './buildCreativeBrief.js?v=202604300848';
+import { getGenderSubject } from '../shared/subjectUtils.js?v=202604300848';
+import { buildReferenceDirectives } from '../shared/referenceHandler.js?v=202604300848';
+import { buildNegativePrompt } from '../shared/negativePrompt.js?v=202604300848';
 
 function resolveSceneCount(mode, duration = '15s', sceneCount = 'auto') {
   const explicit = parseInt(sceneCount, 10);
