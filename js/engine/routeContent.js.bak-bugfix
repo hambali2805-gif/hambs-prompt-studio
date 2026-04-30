@@ -19,14 +19,14 @@ export function buildCreativePlan(raw, ctx, aiError = '', aiSource = 'gemini'){
  const fallback = buildFallbackPlan(ctx);
 
  fallback.fallbackReason = aiError
-   ? `AI API error: ${aiError}`
+   ? `Gemini API error: ${aiError}`
    : raw
-     ? 'AI response received but failed JSON/schema parsing'
-     : 'AI returned empty response or call was skipped';
+     ? 'Gemini response received but failed JSON/schema parsing'
+     : 'Gemini returned empty response or call was skipped';
 
  fallback.rawGeminiPreview = raw ? String(raw).slice(0, 800) : '';
 
- console.warn('[HAMBS] AI plan failed; fallback used', {
+ console.warn('[HAMBS] Gemini plan failed; fallback used', {
    reason: fallback.fallbackReason,
    rawPreview: fallback.rawGeminiPreview
  });
@@ -34,7 +34,7 @@ export function buildCreativePlan(raw, ctx, aiError = '', aiSource = 'gemini'){
  return fallback;
 }
 
-function normalizePlan(plan, ctx, fallback, aiSource = 'ai'){
+function normalizePlan(plan, ctx, fallback){
  const scenes=[];
  for(let i=0;i<ctx.totalScenes;i++){
    const beat = sceneBeat(ctx,i);
@@ -58,7 +58,7 @@ function normalizePlan(plan, ctx, fallback, aiSource = 'ai'){
 }
 
 export function buildFallbackPlan(ctx){
- return normalizePlan({scenes:Array.from({length:ctx.totalScenes},(_,i)=>fallbackScene(ctx,i))},ctx,true,'fallback');
+ return normalizePlan({scenes:Array.from({length:ctx.totalScenes},(_,i)=>fallbackScene(ctx,i))},ctx,true);
 }
 
 function defaultPhase(ctx,i){

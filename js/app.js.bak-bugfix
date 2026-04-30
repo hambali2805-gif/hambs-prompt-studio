@@ -89,24 +89,8 @@ async function startAI() {
   state.productDescription = document.getElementById('productDescription')?.value || '';
   state.customNegativePrompt = document.getElementById('customNegativePrompt')?.value || '';
 
-  const provider = getAiProvider();
-  const geminiKey = getApiKey();
-  const openRouterKey = getOpenRouterApiKey(false);
-
-  if (provider === 'gemini' && !geminiKey) {
-    alert('Masukkan API Key Google AI Studio!');
-    return;
-  }
-
-  if (provider === 'openrouter' && !openRouterKey) {
-    alert('Masukkan OpenRouter API Key!');
-    return;
-  }
-
-  if (provider === 'auto' && !geminiKey && !openRouterKey) {
-    alert('Masukkan API Key Google AI Studio atau OpenRouter API Key!');
-    return;
-  }
+  const key = getApiKey();
+  if (!key) { alert('Masukkan API Key Google AI Studio!'); return; }
 
   const isUGC = state.contentStyle === 'UGC';
   // V5 fix: do not force UGC video style to Lifestyle. User choice stays respected.
@@ -130,7 +114,7 @@ async function startAI() {
     progEl.style.width = '18%';
     await delay(250);
 
-    statusEl.textContent = `🤖 Asking ${provider === 'openrouter' ? 'OpenRouter' : provider === 'gemini' ? 'Gemini' : 'AI provider'} for structured creative plan...`;
+    statusEl.textContent = '🤖 Asking Gemini for structured creative plan...';
     progEl.style.width = '35%';
     let raw = '';
     let aiError = '';

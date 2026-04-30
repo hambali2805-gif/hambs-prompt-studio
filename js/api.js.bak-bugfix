@@ -356,14 +356,6 @@ export async function callAI(prompt) {
         return await callOpenRouter(prompt);
     }
 
-    const geminiKey = getApiKey();
-    const openRouterKey = getOpenRouterApiKey(false);
-
-    if (!geminiKey && openRouterKey) {
-        console.warn('Gemini key kosong pada mode auto; memakai OpenRouter.');
-        return await callOpenRouter(prompt);
-    }
-
     try {
         return await callGeminiDirect(prompt);
     } catch (geminiError) {
