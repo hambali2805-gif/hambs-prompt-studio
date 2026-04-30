@@ -1,6 +1,6 @@
 // ==================== GEMINI API LAYER ====================
-import { getGeminiApiUrl, API_KEY_STORAGE, GEMINI_MODEL } from './config.js?v=202604301007';
-import { state } from './state.js?v=202604301007';
+import { getGeminiApiUrl, API_KEY_STORAGE, GEMINI_MODEL } from './config.js?v=202604301036';
+import { state } from './state.js?v=202604301036';
 
 // HAMBS AI PROVIDER ROUTER
 const AI_PROVIDER_STORAGE = 'hambs_ai_provider';

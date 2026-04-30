@@ -1,4 +1,4 @@
-import { joinPromptParts } from '../../../shared/textCleaner.js?v=202604301007';
+import { joinPromptParts } from '../../../shared/textCleaner.js?v=202604301036';
 
 export function buildModeImageStyle(mode, platform) {
     const isUGC = mode === 'ugc';

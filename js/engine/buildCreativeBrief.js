@@ -119,6 +119,13 @@ Video Rules: ${list(videoEngine.promptRules)}
 Presentation Type: ${ctx.presentation?.label || ctx.presentationType}
 Presentation Purpose: ${ctx.presentation?.purpose || 'show product clearly'}
 Category Presentation Hint: ${categoryPresentationHint(ctx)}
+
+[CATEGORY QUALITY PROFILE]
+Final Category: ${ctx.finalCategory || ctx.category}
+Quality Key: ${ctx.categoryQualityKey || 'generic_product'}
+Presentation Keywords: ${ctx.presentationKeywords || 'auto'}
+Allowed Actions: ${list(ctx.categoryQualityProfile?.allowedActions)}
+Forbidden Cross-Category Actions: ${list(ctx.categoryQualityProfile?.forbiddenPhrases)}
 Hook Type: ${labelValue(ctx.hookType)}
 CTA Type: ${labelValue(ctx.ctaType, 'soft recommendation')}
 

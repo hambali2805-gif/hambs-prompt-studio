@@ -1,6 +1,6 @@
-import { buildImagePromptByPlatform } from '../platforms/image/index.js?v=202604301007';
-import { buildVideoPromptByPlatform } from '../platforms/video/index.js?v=202604301007';
-import { validateSceneSet } from '../shared/validationUtils.js?v=202604301007';
+import { buildImagePromptByPlatform } from '../platforms/image/index.js?v=202604301036';
+import { buildVideoPromptByPlatform } from '../platforms/video/index.js?v=202604301036';
+import { validateSceneSet } from '../shared/validationUtils.js?v=202604301036';
 
 export function buildOutputPack(plan, ctx){
  const sceneVOs=plan.scenes.map((s,i)=>({
@@ -99,7 +99,11 @@ export function buildOutputPack(plan, ctx){
      platformProfile:ctx.platformProfile,
      imageEngineProfile:ctx.imageEngineProfile,
      videoEngineProfile:ctx.videoEngineProfile,
-     referenceControl:ctx.referenceControl
+     referenceControl:ctx.referenceControl,
+     finalCategory:ctx.finalCategory || ctx.category,
+     categoryQualityKey:ctx.categoryQualityKey,
+     categoryQualityProfile:ctx.categoryQualityProfile,
+     finalPresentationKeywords:ctx.presentationKeywords || ''
    }
  };
 

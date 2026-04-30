@@ -2,9 +2,9 @@
 // UI/API tetap, semua generator lama dipensiunkan. Generation path:
 // UI → buildContext → Gemini Plan → V5 Platform Prompts → Master Pack.
 
-import { engineConfig, updateConfig, SHOT_COLORS, API_KEY_STORAGE, PERSONAS, ENERGY_LEVELS } from './config.js?v=202604301007';
-import { state } from './state.js?v=202604301007';
-import { delay, escapeForAttr } from './utils.js?v=202604301007';
+import { engineConfig, updateConfig, SHOT_COLORS, API_KEY_STORAGE, PERSONAS, ENERGY_LEVELS } from './config.js?v=202604301036';
+import { state } from './state.js?v=202604301036';
+import { delay, escapeForAttr } from './utils.js?v=202604301036';
 import {
   callAI,
   saveApiKeyToStorage,
@@ -17,16 +17,16 @@ import {
   saveOpenRouterApiKeyToStorage,
   getOpenRouterModel,
   saveOpenRouterModelToStorage
-} from './api.js?v=202604301007';
-import { getImagePlatformLabel, getVideoPlatformLabel } from './promptBuilder.js?v=202604301007';
-import { buildContext } from './engine/buildContext.js?v=202604301007';
-import { buildGeminiPrompt } from './engine/buildGeminiPrompt.js?v=202604301007';
-import { buildCreativePlan } from './engine/routeContent.js?v=202604301007';
-import { buildOutputPack } from './engine/buildOutput.js?v=202604301007';
+} from './api.js?v=202604301036';
+import { getImagePlatformLabel, getVideoPlatformLabel } from './promptBuilder.js?v=202604301036';
+import { buildContext } from './engine/buildContext.js?v=202604301036';
+import { buildGeminiPrompt } from './engine/buildGeminiPrompt.js?v=202604301036';
+import { buildCreativePlan } from './engine/routeContent.js?v=202604301036';
+import { buildOutputPack } from './engine/buildOutput.js?v=202604301036';
 import {
   saveSession, restoreSession, clearSession, handleFile, updateConfirmBtn,
   loadProjectList, saveCurrentProject, exportProject, importProject, loadSelectedProject
-} from './session.js?v=202604301007';
+} from './session.js?v=202604301036';
 
 // ==================== NAVIGATION ====================
 function selectMode(mode) {

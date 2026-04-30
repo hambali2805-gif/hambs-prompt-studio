@@ -1,5 +1,6 @@
-import { stripMarkdownFences, compact } from '../shared/textCleaner.js?v=202604301007';
-import { ensureSubject } from '../shared/subjectUtils.js?v=202604301007';
+import { sanitizeCreativeTextByCategory, guardSceneActionByCategory, normalizeScenePieceByCategory } from '../intelligence/categoryQualityProfiles.js?v=202604301036';
+import { stripMarkdownFences, compact } from '../shared/textCleaner.js?v=202604301036';
+import { ensureSubject } from '../shared/subjectUtils.js?v=202604301036';
 
 export function parseGeminiPlan(raw){
  if(!raw) return null;
@@ -30,6 +31,7 @@ export function buildCreativePlan(raw, ctx, aiError = '', aiSource = 'ai'){
 
 function sanitizeCreativeText(value, field = 'text', ctx = {}) {
   let t = String(value || '').trim();
+  t = sanitizeCreativeTextByCategory(t, field, ctx);
   if (!t) return '';
 
   const replacements = [
@@ -64,11 +66,13 @@ function sanitizeCreativeText(value, field = 'text', ctx = {}) {
     }
   }
 
-  return t;
+  return sanitizeCreativeTextByCategory(t, field, ctx);
 }
 
 function guardSceneAction(action, phase, ctx, index) {
   const a = sanitizeCreativeText(action, 'mainAction', ctx);
+  const categoryGuarded = guardSceneActionByCategory(a, phase, ctx, index);
+  if (categoryGuarded && categoryGuarded !== a) return categoryGuarded;
   const p = String(phase || '').toLowerCase();
   const isFood = ctx?.parentType === 'food' || String(ctx?.category || '').toUpperCase().includes('MAKANAN') || String(ctx?.productType || '').includes('noodle');
 
@@ -100,11 +104,14 @@ function normalizePlan(plan, ctx, fallback, aiSource = 'ai'){
 
    const phase = sanitizeCreativeText(compact(s.phase)||beat.phase||defaultPhase(ctx,i), 'phase', ctx);
    const vo = localizeVOText(sanitizeCreativeText(compact(s.vo)||fallbackVO(ctx,i), 'vo', ctx), ctx);
-   const visualSummary = sanitizeCreativeText(compact(s.visualSummary || s.description) || fallbackDescription(ctx,i), 'visualSummary', ctx);
+   let visualSummary = sanitizeCreativeText(compact(s.visualSummary || s.description) || fallbackDescription(ctx,i), 'visualSummary', ctx);
    const rawMainAction = sanitizeCreativeText(compact(s.mainAction || s.action) || beat.action || pick(ctx.rules.actions, i) || 'natural product interaction', 'mainAction', ctx);
    const mainAction = guardSceneAction(rawMainAction, phase, ctx, i);
-   const cameraDirection = sanitizeCreativeText(compact(s.cameraDirection) || beat.cameraDirection || ctx.platformProfile?.camera || ctx.videoStyle?.camera || 'vertical social video framing', 'cameraDirection', ctx);
-   const continuity = sanitizeCreativeText(compact(s.continuity) || beat.continuity || `Keep the same ${ctx.gender.subj}, product scale, background logic, and product identity.`, 'continuity', ctx);
+   let cameraDirection = sanitizeCreativeText(compact(s.cameraDirection) || beat.cameraDirection || ctx.platformProfile?.camera || ctx.videoStyle?.camera || 'vertical social video framing', 'cameraDirection', ctx);
+   let continuity = sanitizeCreativeText(compact(s.continuity) || beat.continuity || `Keep the same ${ctx.gender.subj}, product scale, background logic, and product identity.`, 'continuity', ctx);
+   visualSummary = normalizeScenePieceByCategory(visualSummary, 'visualSummary', phase, ctx, i);
+   cameraDirection = normalizeScenePieceByCategory(cameraDirection, 'cameraDirection', phase, ctx, i);
+   continuity = normalizeScenePieceByCategory(continuity, 'continuity', phase, ctx, i);
 
    scenes.push({
     number: Number(s.number) || i + 1,

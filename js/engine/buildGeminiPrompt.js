@@ -1,4 +1,4 @@
-import { buildRoleplayBlock } from './roleplayProfiles.js?v=202604301007';
+import { buildRoleplayBlock } from './roleplayProfiles.js?v=202604301036';
 
 function list(v, fallback = 'none') {
   return Array.isArray(v) && v.length ? v.join(' | ') : fallback;
@@ -21,6 +21,15 @@ CORE WORKFLOW
 
 CREATIVE BRIEF SENT BY TOOL
 ${ctx.creativeBrief}
+
+GLOBAL CATEGORY GUARD
+- Final category: ${ctx.finalCategory || ctx.category}
+- Category quality key: ${ctx.categoryQualityKey || 'generic_product'}
+- Use only category-appropriate actions.
+- Allowed actions: ${list(ctx.categoryQualityProfile?.allowedActions)}
+- Forbidden cross-category actions: ${list(ctx.categoryQualityProfile?.forbiddenPhrases)}
+- Do not mix category logic. Food must not use skincare/fashion/device actions. Skincare must not use food/fashion/device actions. Fashion must not use food/skincare/device actions. Electronics must not use food/skincare/fashion actions.
+- If unsure, use the simplest visible product action from the allowed actions list.
 
 PRODUCT-SPECIFIC INGREDIENTS
 Use these as semantic material, not copy-paste lines.
@@ -100,5 +109,5 @@ Silently check and fix:
 8. Are negative/safety rules respected?
 9. Does every Indonesian phrase sound natural, simple, and free from nonsense words?
 
-Return valid JSON only.`;
+No cross-category leakage. Return valid JSON only.`;
 }
