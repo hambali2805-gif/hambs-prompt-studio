@@ -1,5 +1,5 @@
-import { stripMarkdownFences, compact } from '../shared/textCleaner.js?v=202604300933';
-import { ensureSubject } from '../shared/subjectUtils.js?v=202604300933';
+import { stripMarkdownFences, compact } from '../shared/textCleaner.js?v=202604300937';
+import { ensureSubject } from '../shared/subjectUtils.js?v=202604300937';
 
 export function parseGeminiPlan(raw){
  if(!raw) return null;

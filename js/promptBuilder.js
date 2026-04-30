@@ -1,7 +1,7 @@
 // V5 lightweight prompt builder compatibility layer.
 // Old V4 prompt assembly is retired; app now uses js/engine/* and platform-specific V5 builders.
-import { engineConfig } from './config.js?v=202604300933';
-import { state } from './state.js?v=202604300933';
+import { engineConfig } from './config.js?v=202604300937';
+import { state } from './state.js?v=202604300937';
 
 export function getImagePlatformLabel(platform = engineConfig.imagePlatform || state.selectedImageModel || 'banana_pro') {
   return platform === 'gpt_image' ? 'GPT Image' : 'Banana Pro';
